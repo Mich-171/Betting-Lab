@@ -1,0 +1,237 @@
+
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#101722">
+<title>BET TRACKER</title>
+<style>
+:root{--bg:#0b111b;--card:#151f2d;--line:#29384b;--txt:#edf3fa;--muted:#91a0b3;--green:#35d49a;--red:#ff6878;--blue:#70aaff}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--txt);font-family:Arial,sans-serif}
+header{padding:22px;background:#111b29;border-bottom:1px solid var(--line)}
+h1{margin:0;letter-spacing:2px;font-size:25px}h1 span{color:var(--green)}
+header p{color:var(--muted);font-size:12px;margin:6px 0 0}
+main{max-width:900px;margin:auto;padding:16px}
+nav{display:flex;gap:7px;overflow:auto;margin-bottom:18px}
+button{background:#253347;color:var(--txt);border:0;border-radius:8px;padding:11px 14px;font-weight:bold;cursor:pointer}
+button.active,.primary{background:var(--green);color:#07150f}
+button.danger{background:#542733;color:#fff}
+section{display:none}section.active{display:block}
+.card{background:var(--card);border:1px solid var(--line);padding:15px;border-radius:12px;margin-bottom:12px}
+.grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+.metric{font-size:25px;font-weight:bold;margin-top:8px}
+.muted{color:var(--muted);font-size:12px}
+.green{color:var(--green)}.red{color:var(--red)}.blue{color:var(--blue)}
+label{display:block;font-size:12px;color:var(--muted);margin:12px 0 5px}
+input,select{width:100%;padding:11px;border-radius:8px;border:1px solid var(--line);background:#0c1521;color:var(--txt);font-size:14px}
+.row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.event{padding:12px;background:#101a27;border-radius:9px;margin:10px 0}
+.bet{border-left:4px solid var(--blue)}
+.bet.won{border-left-color:var(--green)}.bet.lost{border-left-color:var(--red)}
+.bethead{display:flex;justify-content:space-between;gap:8px;align-items:center}
+.small{font-size:11px;color:var(--muted)}
+hr{border:0;border-top:1px solid var(--line);margin:14px 0}
+table{width:100%;border-collapse:collapse;font-size:13px}
+td,th{text-align:left;padding:9px;border-bottom:1px solid var(--line)}
+.actions{display:flex;gap:7px;flex-wrap:wrap;margin-top:12px}
+@media(max-width:480px){main{padding:11px}.grid{gap:7px}.metric{font-size:21px}button{padding:10px;font-size:12px}}
+</style>
+</head>
+<body>
+<header>
+<h1>BET <span>TRACKER</span></h1>
+<p>Il tuo centro di controllo delle schedine</p>
+</header>
+<main>
+<nav>
+<button class="active" onclick="show('home',this)">Dashboard</button>
+<button onclick="show('archive',this)">Archivio</button>
+<button onclick="show('new',this)">Nuova schedina</button>
+<button onclick="show('stats',this)">Statistiche</button>
+<button onclick="show('backup',this)">Backup</button>
+</nav>
+
+<section id="home" class="active">
+<h2>Dashboard</h2>
+<div class="grid">
+<div class="card"><div class="muted">Totale investito</div><div class="metric" id="invested">€0,00</div></div>
+<div class="card"><div class="muted">Ritorni effettivi</div><div class="metric" id="returns">€0,00</div></div>
+<div class="card"><div class="muted">Profitto / perdita</div><div class="metric" id="profit">€0,00</div></div>
+<div class="card"><div class="muted">Schedine registrate</div><div class="metric" id="count">0</div></div>
+</div>
+<div class="card">
+<h3>Ultime schedine</h3>
+<div id="recent" class="muted">Nessuna schedina registrata.</div>
+</div>
+</section>
+
+<section id="archive">
+<h2>Archivio schedine</h2>
+<div id="bets"></div>
+</section>
+
+<section id="new">
+<h2>Nuova schedina</h2>
+<div class="card">
+<div class="row">
+<div><label>Giornata</label><input id="day" type="number" min="1" placeholder="Es. 12"></div>
+<div><label>Tipo</label><select id="type"><option>Easy</option><option>Hard</option></select></div>
+</div>
+<div class="row">
+<div><label>Data</label><input id="date" type="date"></div>
+<div><label>Puntata (€)</label><input id="stake" type="number" min="0" step="0.01" placeholder="7.50"></div>
+</div>
+<label>Vincita potenziale lorda (€)</label>
+<input id="potential" type="number" min="0" step="0.01" placeholder="Es. 21.50">
+<label>Note</label><input id="notes" placeholder="Note sulla schedina">
+<hr>
+<h3>Eventi della schedina</h3>
+<div id="events"></div>
+<button onclick="addEvent()">+ Aggiungi evento</button>
+<div class="actions"><button class="primary" onclick="saveBet()">Salva schedina</button></div>
+</div>
+</section>
+
+<section id="stats">
+<h2>Statistiche</h2>
+<div class="grid">
+<div class="card"><div class="muted">Eventi vinti</div><div class="metric green" id="wins">0</div></div>
+<div class="card"><div class="muted">Eventi persi</div><div class="metric red" id="losses">0</div></div>
+<div class="card"><div class="muted">Easy vinte</div><div class="metric" id="easywins">0</div></div>
+<div class="card"><div class="muted">Hard vinte</div><div class="metric" id="hardwins">0</div></div>
+</div>
+<div class="card">
+<h3>Risultati per mercato</h3>
+<div id="markets" class="muted">Ancora nessun dato.</div>
+</div>
+</section>
+
+<section id="backup">
+<h2>Backup dati</h2>
+<div class="card">
+<p class="muted">Esporta tutte le schedine in un file JSON da conservare. Potrai reimportarlo anche dopo un aggiornamento dell'app.</p>
+<div class="actions"><button class="primary" onclick="exportData()">Esporta backup</button></div>
+<hr>
+<label>Importa backup JSON</label>
+<input type="file" id="backupfile" accept=".json,application/json">
+<div class="actions"><button onclick="importData()">Importa dati</button></div>
+<hr>
+<button class="danger" onclick="clearData()">Cancella tutti i dati</button>
+</div>
+</section>
+</main>
+
+<script>
+let bets=JSON.parse(localStorage.getItem('betTrackerData')||'[]');
+
+function money(n){return '€'+Number(n||0).toFixed(2).replace('.',',')}
+function persist(){localStorage.setItem('betTrackerData',JSON.stringify(bets));render()}
+function show(id,btn){
+ document.querySelectorAll('section').forEach(s=>s.classList.remove('active'));
+ document.getElementById(id).classList.add('active');
+ document.querySelectorAll('nav button').forEach(b=>b.classList.remove('active'));
+ btn.classList.add('active');
+ render();
+}
+function addEvent(){
+ const div=document.createElement('div');
+ div.className='event';
+ div.innerHTML=`
+ <label>Partita</label><input class="match" placeholder="Es. Milan - Inter">
+ <div class="row">
+ <div><label>Mercato</label><select class="market">
+ <option>1X2</option><option>Doppia chance</option><option>Over/Under</option><option>Multigol</option><option>Goal/No Goal</option><option>Risultato esatto</option><option>Combo</option><option>Altro</option>
+ </select></div>
+ <div><label>Selezione</label><input class="selection" placeholder="Es. 1X"></div>
+ </div>
+ <div class="row">
+ <div><label>Quota</label><input class="odds" type="number" step="0.01" placeholder="1.50"></div>
+ <div><label>Esito</label><select class="outcome"><option value="pending">Da giocare</option><option value="won">Vinto</option><option value="lost">Perso</option><option value="void">Annullato</option></select></div>
+ </div>
+ <div class="actions"><button class="danger small" onclick="this.parentElement.parentElement.remove()">Rimuovi evento</button></div>`;
+ document.getElementById('events').appendChild(div);
+}
+function saveBet(){
+ const day=document.getElementById('day').value;
+ const stake=Number(document.getElementById('stake').value);
+ if(!day||stake<=0){alert('Inserisci giornata e puntata valida.');return}
+ const events=[...document.querySelectorAll('#events .event')].map(e=>({
+ match:e.querySelector('.match').value,
+ market:e.querySelector('.market').value,
+ selection:e.querySelector('.selection').value,
+ odds:Number(e.querySelector('.odds').value)||0,
+ outcome:e.querySelector('.outcome').value
+ }));
+ if(!events.length){alert('Inserisci almeno un evento.');return}
+ bets.push({
+ id:Date.now(),day:Number(day),type:document.getElementById('type').value,
+ date:document.getElementById('date').value,
+ stake:stake,potential:Number(document.getElementById('potential').value)||0,
+ notes:document.getElementById('notes').value,events:events
+ });
+ ['day','stake','potential','notes','date'].forEach(id=>document.getElementById(id).value='');
+ document.getElementById('events').innerHTML='';
+ persist();alert('Schedina salvata!');show('archive',document.querySelectorAll('nav button')[1]);
+}
+function betStatus(b){
+ if(b.events.some(e=>e.outcome==='lost'))return 'Persa';
+ if(b.events.every(e=>e.outcome==='won'||e.outcome==='void'))return 'Vinta';
+ return 'In corso';
+}
+function render(){
+ const invested=bets.reduce((s,b)=>s+b.stake,0);
+ const returns=bets.filter(b=>betStatus(b)==='Vinta').reduce((s,b)=>s+b.potential,0);
+ const profit=returns-invested;
+ document.getElementById('invested').textContent=money(invested);
+ document.getElementById('returns').textContent=money(returns);
+ const p=document.getElementById('profit');p.textContent=money(profit);p.className='metric '+(profit>=0?'green':'red');
+ document.getElementById('count').textContent=bets.length;
+ const recent=[...bets].reverse().slice(0,4);
+ document.getElementById('recent').innerHTML=recent.length?recent.map(b=>`${b.day}ª giornata · ${b.type} · ${money(b.stake)} · ${betStatus(b)}`).join('<hr>'):'Nessuna schedina registrata.';
+ document.getElementById('bets').innerHTML=bets.length?[...bets].reverse().map(b=>{
+ const status=betStatus(b);
+ return `<div class="card bet ${status==='Vinta'?'won':status==='Persa'?'lost':''}">
+ <div class="bethead"><strong>${b.day}ª giornata – ${b.type}</strong><span>${status}</span></div>
+ <p class="muted">${b.date||'Data non inserita'} · Puntata ${money(b.stake)} · Potenziale ${money(b.potential)}</p>
+ ${b.notes?`<p>${escapeHtml(b.notes)}</p>`:''}
+ ${b.events.map(e=>`<p class="small">${escapeHtml(e.match)} · ${escapeHtml(e.market)}: ${escapeHtml(e.selection)} · quota ${e.odds||'-'} · ${e.outcome}</p>`).join('')}
+ <div class="actions"><button class="small" onclick="editOutcomes(${b.id})">Modifica esiti</button><button class="danger small" onclick="deleteBet(${b.id})">Elimina</button></div></div>`;
+ }).join(''):'<p class="muted">Nessuna schedina registrata.</p>';
+ const all=bets.flatMap(b=>b.events);
+ const wins=all.filter(e=>e.outcome==='won').length;
+ const losses=all.filter(e=>e.outcome==='lost').length;
+ document.getElementById('wins').textContent=wins;
+ document.getElementById('losses').textContent=losses;
+ document.getElementById('easywins').textContent=bets.filter(b=>b.type==='Easy'&&betStatus(b)==='Vinta').length;
+ document.getElementById('hardwins').textContent=bets.filter(b=>b.type==='Hard'&&betStatus(b)==='Vinta').length;
+ const groups={};
+ all.forEach(e=>{groups[e.market]??={w:0,l:0,p:0};if(e.outcome==='won')groups[e.market].w++;if(e.outcome==='lost')groups[e.market].l++;});
+ document.getElementById('markets').innerHTML=Object.keys(groups).length?Object.entries(groups).map(([k,v])=>`<p><strong>${escapeHtml(k)}</strong> — ${v.w} vinte / ${v.l} perse</p>`).join(''):'Ancora nessun dato.';
+}
+function escapeHtml(s){return String(s||'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
+function editOutcomes(id){
+ const b=bets.find(x=>x.id===id);if(!b)return;
+ b.events.forEach((e,i)=>{
+ const v=prompt(`${e.match} — esito: vinto, perso, pending o void`,e.outcome);
+ if(v&&['won','lost','pending','void'].includes(v))e.outcome=v;
+ });
+ persist();
+}
+function deleteBet(id){if(confirm('Eliminare questa schedina?')){bets=bets.filter(b=>b.id!==id);persist()}}
+function exportData(){
+ const blob=new Blob([JSON.stringify(bets,null,2)],{type:'application/json'});
+ const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='bet-tracker-backup.json';a.click();URL.revokeObjectURL(a.href);
+}
+function importData(){
+ const f=document.getElementById('backupfile').files[0];if(!f){alert('Seleziona un file.');return}
+ const reader=new FileReader();
+ reader.onload=()=>{try{const data=JSON.parse(reader.result);if(!Array.isArray(data))throw Error();if(confirm('Sostituire tutti i dati attuali con il backup?')){bets=data;persist();alert('Backup importato!')}}catch(e){alert('File non valido.')}};
+ reader.readAsText(f);
+}
+function clearData(){if(confirm('ATTENZIONE: cancellare tutte le schedine?')){bets=[];persist()}}
+render();
+</script>
+</body>
+</html>
