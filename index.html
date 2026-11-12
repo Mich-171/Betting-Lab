@@ -2,508 +2,327 @@
 <!DOCTYPE html>
 <html lang="it">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="theme-color" content="#101827">
-    <meta name="description" content="BETTING LAB - Track, Analyze, Improve">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#101827">
+  <meta name="description" content="BETTING LAB - Gestione e analisi delle schedine">
+  <title>BETTING LAB</title>
 
-    <title>BETTING LAB</title>
+  <link rel="manifest" href="./manifest.webmanifest">
+  <link rel="icon" href="./icon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="./style.css">
 
-    <link rel="icon" href="assets/icon.svg" type="image/svg+xml">
-    <link rel="manifest" href="manifest.webmanifest">
-    <link rel="stylesheet" href="css/style.css">
+  <script type="module" src="./app.js"></script>
 </head>
 
 <body>
-
-<header class="topbar">
-
-    <a class="brand" href="#">
-        <span class="brand-mark">B</span>
-
-        <span>
-            BETTING <b>LAB</b>
-            <small>TRACK · ANALYZE · IMPROVE</small>
-        </span>
-    </a>
-
-    <div class="top-actions">
-        <button class="btn btn-ghost" id="exportBtn">
-            Esporta backup
-        </button>
-
-        <label class="btn btn-ghost file-label">
-            Importa backup
-            <input type="file" id="importFile" accept=".json,application/json">
-        </label>
+  <header class="topbar">
+    <div class="brand">
+      <div class="brand-icon">B</div>
+      <div>
+        <h1>BETTING LAB</h1>
+        <span>Il tuo centro di controllo</span>
+      </div>
     </div>
 
-</header>
+    <div class="header-actions">
+      <button id="exportBtn" class="btn btn-secondary">Esporta backup</button>
+      <button id="importBtn" class="btn btn-secondary">Importa backup</button>
+      <input id="importFile" type="file" accept=".json,application/json" hidden>
+    </div>
+  </header>
 
-
-<main class="container">
+  <main class="container">
 
     <!-- DASHBOARD -->
+    <section class="dashboard">
+      <div class="stat-card">
+        <span class="stat-label">Totale puntato</span>
+        <strong id="statStake">€0,00</strong>
+      </div>
 
-    <section class="hero">
+      <div class="stat-card">
+        <span class="stat-label">Incasso effettivo</span>
+        <strong id="statReturn">€0,00</strong>
+      </div>
 
-        <div>
-            <p class="eyebrow">IL TUO CENTRO DI CONTROLLO</p>
+      <div class="stat-card">
+        <span class="stat-label">Profitto netto</span>
+        <strong id="statProfit">€0,00</strong>
+      </div>
 
-            <h1>
-                Le schedine,
-                <span>sotto la lente.</span>
-            </h1>
-
-            <p class="muted">
-                Registra le giocate, controlla i risultati e misura le performance.
-            </p>
-        </div>
-
-        <div class="hero-chip">
-            <span class="live-dot"></span>
-            Archivio locale attivo
-        </div>
-
+      <div class="stat-card">
+        <span class="stat-label">ROI</span>
+        <strong id="statRoi">0%</strong>
+      </div>
     </section>
-
-
-    <!-- RIEPILOGO -->
-
-    <section class="stats-grid" id="overviewStats">
-
-        <article class="stat-card">
-            <span>Investito</span>
-            <strong id="statStake">€0,00</strong>
-            <small>Totale puntate registrate</small>
-        </article>
-
-        <article class="stat-card">
-            <span>Ritorni effettivi</span>
-            <strong id="statReturn">€0,00</strong>
-            <small>Incassi realmente ottenuti</small>
-        </article>
-
-        <article class="stat-card">
-            <span>Bilancio netto</span>
-            <strong id="statProfit">€0,00</strong>
-            <small>Ritorni meno puntate</small>
-        </article>
-
-        <article class="stat-card">
-            <span>ROI</span>
-            <strong id="statRoi">0,0%</strong>
-            <small>Rendimento sul capitale giocato</small>
-        </article>
-
-    </section>
-
 
     <!-- NAVIGAZIONE -->
-
     <nav class="tabs">
-
-        <button class="tab active" data-tab="bets">
-            Schedine
-        </button>
-
-        <button class="tab" data-tab="stats">
-            Statistiche
-        </button>
-
-        <button class="tab" data-tab="fixtures">
-            Partite
-        </button>
-
+      <button class="tab active" data-tab="bets">Le mie schedine</button>
+      <button class="tab" data-tab="stats">Statistiche</button>
+      <button class="tab" data-tab="fixtures">Calendario</button>
     </nav>
 
-
-    <!-- SEZIONE SCHEDINE -->
-
-    <section class="panel tab-panel active" id="panel-bets">
-
-        <div class="section-heading">
-
-            <div>
-                <p class="eyebrow">REGISTRO</p>
-                <h2>Le tue schedine</h2>
-            </div>
-
-            <button class="btn btn-primary" id="newBetBtn">
-                ＋ Nuova schedina
-            </button>
-
+    <!-- SCHEDINE -->
+    <section id="betsPanel" class="panel active">
+      <div class="section-heading">
+        <div>
+          <h2>Le mie schedine</h2>
+          <p>Gestisci, modifica e controlla le tue giocate.</p>
         </div>
+        <button id="newBetBtn" class="btn btn-primary">+ Nuova schedina</button>
+      </div>
 
+      <div class="filters">
+        <select id="typeFilter">
+          <option value="all">Tutte le tipologie</option>
+          <option value="Easy">Easy</option>
+          <option value="Hard">Hard</option>
+        </select>
 
-        <div class="filter-row">
+        <select id="statusFilter">
+          <option value="all">Tutti gli esiti</option>
+          <option value="pending">In attesa</option>
+          <option value="won">Vinta</option>
+          <option value="lost">Persa</option>
+          <option value="void">Annullata</option>
+        </select>
 
-            <select id="typeFilter">
-                <option value="all">Easy + Hard</option>
-                <option value="Easy">Solo Easy</option>
-                <option value="Hard">Solo Hard</option>
-            </select>
+        <input id="searchInput" type="search" placeholder="Cerca una partita...">
+      </div>
 
-            <select id="statusFilter">
-                <option value="all">Tutti gli esiti</option>
-                <option value="pending">In attesa</option>
-                <option value="won">Vinta</option>
-                <option value="lost">Persa</option>
-                <option value="void">Rimborsata</option>
-            </select>
-
-            <input
-                id="searchBets"
-                type="search"
-                placeholder="Cerca giornata o partita..."
-            >
-
-        </div>
-
-
-        <div id="betsList" class="bets-list"></div>
-
+      <div id="betsList" class="bets-list"></div>
     </section>
 
+    <!-- STATISTICHE -->
+    <section id="statsPanel" class="panel">
+      <div class="section-heading">
+        <div>
+          <h2>Statistiche</h2>
+          <p>Analizza l'andamento delle tue giocate.</p>
+        </div>
+      </div>
 
-    <!-- SEZIONE STATISTICHE -->
-
-    <section class="panel tab-panel" id="panel-stats">
-
-        <div class="section-heading">
-
-            <div>
-                <p class="eyebrow">ANALISI</p>
-                <h2>Statistiche dettagliate</h2>
-            </div>
-
+      <div class="stats-grid">
+        <div class="content-card">
+          <h3>Rendimento per tipologia</h3>
+          <div id="typeStats"></div>
         </div>
 
-
-        <div class="stats-columns">
-
-            <div class="subpanel">
-                <h3>Easy vs Hard</h3>
-                <div id="typeStats"></div>
-            </div>
-
-            <div class="subpanel">
-                <h3>Esiti complessivi</h3>
-                <div id="outcomeStats"></div>
-            </div>
-
+        <div class="content-card">
+          <h3>Risultati complessivi</h3>
+          <div id="outcomeStats"></div>
         </div>
 
-
-        <div class="subpanel">
-            <h3>Performance per mercato</h3>
-            <div id="marketStats"></div>
+        <div class="content-card">
+          <h3>Statistiche per mercato</h3>
+          <div id="marketStats"></div>
         </div>
-
+      </div>
     </section>
 
-
-    <!-- SEZIONE PARTITE -->
-
-    <section class="panel tab-panel" id="panel-fixtures">
-
-        <div class="section-heading">
-
-            <div>
-                <p class="eyebrow">CALENDARIO</p>
-                <h2>Partite di giornata</h2>
-
-                <p class="muted">
-                    Seleziona la giornata e aggiungi le partite
-                    alla schedina senza riscrivere le squadre.
-                </p>
-
-            </div>
-
+    <!-- CALENDARIO -->
+    <section id="fixturesPanel" class="panel">
+      <div class="section-heading">
+        <div>
+          <h2>Calendario</h2>
+          <p>Gestisci le partite delle diverse giornate.</p>
         </div>
+      </div>
 
+      <div class="content-card">
+        <div class="filters">
+          <select id="seasonSelect">
+            <option value="2026">Stagione 2026/2027</option>
+            <option value="2025">Stagione 2025/2026</option>
+          </select>
 
-        <div class="fixture-tools">
+          <select id="roundSelect">
+            <option value="1">1ª giornata</option>
+            <option value="2">2ª giornata</option>
+            <option value="3">3ª giornata</option>
+            <option value="4">4ª giornata</option>
+            <option value="5">5ª giornata</option>
+            <option value="6">6ª giornata</option>
+            <option value="7">7ª giornata</option>
+            <option value="8">8ª giornata</option>
+            <option value="9">9ª giornata</option>
+            <option value="10">10ª giornata</option>
+            <option value="11">11ª giornata</option>
+            <option value="12">12ª giornata</option>
+            <option value="13">13ª giornata</option>
+            <option value="14">14ª giornata</option>
+            <option value="15">15ª giornata</option>
+            <option value="16">16ª giornata</option>
+            <option value="17">17ª giornata</option>
+            <option value="18">18ª giornata</option>
+            <option value="19">19ª giornata</option>
+            <option value="20">20ª giornata</option>
+            <option value="21">21ª giornata</option>
+            <option value="22">22ª giornata</option>
+            <option value="23">23ª giornata</option>
+            <option value="24">24ª giornata</option>
+            <option value="25">25ª giornata</option>
+            <option value="26">26ª giornata</option>
+            <option value="27">27ª giornata</option>
+            <option value="28">28ª giornata</option>
+            <option value="29">29ª giornata</option>
+            <option value="30">30ª giornata</option>
+            <option value="31">31ª giornata</option>
+            <option value="32">32ª giornata</option>
+            <option value="33">33ª giornata</option>
+            <option value="34">34ª giornata</option>
+            <option value="35">35ª giornata</option>
+            <option value="36">36ª giornata</option>
+            <option value="37">37ª giornata</option>
+            <option value="38">38ª giornata</option>
+          </select>
 
-            <label>
-                Stagione
-
-                <select id="seasonSelect">
-                    <option value="2026">2026/27</option>
-                    <option value="2025">2025/26</option>
-                </select>
-            </label>
-
-
-            <label>
-                Giornata
-
-                <select id="roundSelect"></select>
-            </label>
-
-
-            <button class="btn btn-primary" id="loadFixturesBtn">
-                Carica partite
-            </button>
-
-            <button class="btn btn-ghost" id="addFixtureBtn">
-                ＋ Aggiungi partita
-            </button>
-
+          <button id="loadFixturesBtn" class="btn btn-secondary">Carica giornata</button>
+          <button id="addFixtureBtn" class="btn btn-primary">+ Aggiungi partita</button>
         </div>
-
-
-        <p class="hint" id="fixtureHint">
-            Le partite caricate vengono memorizzate in questo dispositivo.
-            Puoi inserirle manualmente o importare un calendario JSON.
-        </p>
-
 
         <div id="fixturesList" class="fixtures-list"></div>
 
-
-        <div class="fixture-import">
-
-            <label class="btn btn-ghost file-label">
-                Importa calendario JSON
-                <input type="file" id="fixturesFile" accept=".json,application/json">
-            </label>
-
-            <button class="btn btn-ghost" id="exportFixturesBtn">
-                Esporta calendario
-            </button>
-
+        <div class="fixture-tools">
+          <button id="exportFixturesBtn" class="btn btn-secondary">Esporta calendario</button>
+          <button id="importFixturesBtn" class="btn btn-secondary">Importa calendario</button>
+          <input id="fixturesFile" type="file" accept=".json,application/json" hidden>
         </div>
-
+      </div>
     </section>
 
-</main>
+  </main>
 
+  <!-- MODALE NUOVA/MODIFICA SCHEDINA -->
+  <dialog id="betDialog" class="app-dialog">
+    <form id="betForm">
+      <div class="dialog-heading">
+        <h2 id="betDialogTitle">Nuova schedina</h2>
+        <button type="button" class="close-btn" data-close="betDialog">×</button>
+      </div>
 
-<!-- MODALE NUOVA SCHEDINA -->
+      <input id="betId" type="hidden">
 
-<dialog id="betDialog" class="modal">
+      <div class="form-grid">
+        <label>
+          Giornata
+          <input id="betRound" type="number" min="1" max="38" placeholder="Es. 8">
+        </label>
 
-    <form id="betForm" method="dialog">
+        <label>
+          Tipologia
+          <select id="betType" required>
+            <option value="Easy">Easy</option>
+            <option value="Hard">Hard</option>
+          </select>
+        </label>
 
-        <div class="modal-head">
+        <label>
+          Data
+          <input id="betDate" type="date" required>
+        </label>
 
-            <div>
-                <p class="eyebrow">REGISTRAZIONE</p>
-                <h2 id="betDialogTitle">Nuova schedina</h2>
-            </div>
+        <label>
+          Puntata (€)
+          <input id="betStake" type="number" min="0" step="0.01" value="7.50" required>
+        </label>
 
-            <button type="button" class="icon-btn" data-close="betDialog">
-                ✕
-            </button>
+        <label>
+          Quota totale
+          <input id="betOdds" type="number" min="1" step="0.01" placeholder="Calcolo automatico">
+        </label>
 
+        <label>
+          Vincita potenziale (€)
+          <input id="betPotential" type="number" min="0" step="0.01" placeholder="Calcolo automatico">
+        </label>
+
+        <label>
+          Stato
+          <select id="betStatus">
+            <option value="pending">In attesa</option>
+            <option value="won">Vinta</option>
+            <option value="lost">Persa</option>
+            <option value="void">Annullata</option>
+          </select>
+        </label>
+
+        <label>
+          Incasso effettivo (€)
+          <input id="betActual" type="number" min="0" step="0.01" value="0">
+        </label>
+      </div>
+
+      <div class="event-section">
+        <h3>Partite e pronostici</h3>
+
+        <div class="fixture-picker">
+          <select id="fixturePicker">
+            <option value="">Seleziona una partita dal calendario</option>
+          </select>
+          <button type="button" id="addSelectedFixture" class="btn btn-secondary">Aggiungi</button>
         </div>
 
+        <div id="eventsEditor"></div>
 
-        <input type="hidden" id="betId">
+        <button type="button" id="addEventBtn" class="btn btn-secondary">+ Inserisci partita manualmente</button>
+      </div>
 
-
-        <div class="form-grid">
-
-            <label>
-                Giornata
-                <input id="betRound" type="number" min="1" max="50" required>
-            </label>
-
-
-            <label>
-                Tipo
-                <select id="betType">
-                    <option>Easy</option>
-                    <option>Hard</option>
-                </select>
-            </label>
-
-
-            <label>
-                Data
-                <input id="betDate" type="date">
-            </label>
-
-
-            <label>
-                Puntata (€)
-                <input id="betStake" type="number" min="0" step="0.01" value="7.50" required>
-            </label>
-
-
-            <label>
-                Quota totale
-                <input id="betOdds" type="number" min="1" step="0.01" placeholder="Calcolata dagli eventi">
-            </label>
-
-
-            <label>
-                Vincita potenziale (€)
-                <input id="betPotential" type="number" min="0" step="0.01" placeholder="Calcolata automaticamente">
-            </label>
-
-
-            <label>
-                Esito
-                <select id="betStatus">
-                    <option value="pending">In attesa</option>
-                    <option value="won">Vinta</option>
-                    <option value="lost">Persa</option>
-                    <option value="void">Rimborsata</option>
-                </select>
-            </label>
-
-
-            <label>
-                Ritorno effettivo (€)
-                <input id="betActual" type="number" min="0" step="0.01" placeholder="0,00">
-            </label>
-
-        </div>
-
-
-        <!-- EVENTI -->
-
-        <div class="events-head">
-
-            <h3>Eventi della schedina</h3>
-
-            <button type="button" class="btn btn-small btn-ghost" id="addEventBtn">
-                ＋ Evento manuale
-            </button>
-
-        </div>
-
-
-        <div class="event-add-row">
-
-            <select id="fixturePicker">
-                <option value="">Scegli una partita caricata...</option>
-            </select>
-
-            <input id="eventMarket" placeholder="Mercato (es. 1X, Over 1.5)">
-
-            <input id="eventPick" placeholder="Pronostico">
-
-            <input
-                id="eventOdds"
-                type="number"
-                min="1"
-                step="0.01"
-                placeholder="Quota"
-            >
-
-            <button type="button" class="btn btn-small btn-primary" id="addSelectedFixture">
-                Aggiungi
-            </button>
-
-        </div>
-
-
-        <div id="eventsEditor" class="events-editor"></div>
-
-
-        <div class="calc-note">
-            Quota totale e vincita potenziale si aggiornano automaticamente.
-            Entrambi i campi restano modificabili manualmente,
-            anche per aggiungere eventuali bonus.
-        </div>
-
-
-        <div class="modal-actions">
-
-            <button type="button" class="btn btn-ghost" data-close="betDialog">
-                Annulla
-            </button>
-
-            <button type="submit" class="btn btn-primary">
-                Salva schedina
-            </button>
-
-        </div>
-
+      <div class="dialog-actions">
+        <button type="button" class="btn btn-secondary" data-close="betDialog">Annulla</button>
+        <button type="submit" class="btn btn-primary">Salva schedina</button>
+      </div>
     </form>
+  </dialog>
 
-</dialog>
+  <!-- MODALE AGGIUNTA PARTITA AL CALENDARIO -->
+  <dialog id="fixtureDialog" class="app-dialog">
+    <form id="fixtureForm">
+      <div class="dialog-heading">
+        <h2>Aggiungi partita</h2>
+        <button type="button" class="close-btn" data-close="fixtureDialog">×</button>
+      </div>
 
+      <div class="form-grid">
+        <label>
+          Stagione
+          <select id="fixtureSeason">
+            <option value="2026">2026/2027</option>
+            <option value="2025">2025/2026</option>
+          </select>
+        </label>
 
-<!-- MODALE AGGIUNTA PARTITA -->
+        <label>
+          Giornata
+          <input id="fixtureRound" type="number" min="1" max="38" required>
+        </label>
 
-<dialog id="fixtureDialog" class="modal modal-small">
+        <label>
+          Squadra di casa
+          <input id="fixtureHome" type="text" required>
+        </label>
 
-    <form id="fixtureForm" method="dialog">
+        <label>
+          Squadra ospite
+          <input id="fixtureAway" type="text" required>
+        </label>
 
-        <div class="modal-head">
+        <label>
+          Data e ora
+          <input id="fixtureDate" type="datetime-local">
+        </label>
+      </div>
 
-            <h2>Aggiungi partita</h2>
-
-            <button type="button" class="icon-btn" data-close="fixtureDialog">
-                ✕
-            </button>
-
-        </div>
-
-
-        <div class="form-grid">
-
-            <label>
-                Stagione
-                <input id="fixtureSeason" type="number" value="2026">
-            </label>
-
-
-            <label>
-                Giornata
-                <input id="fixtureRound" type="number" min="1" max="50" required>
-            </label>
-
-
-            <label class="full">
-                Casa
-                <input id="fixtureHome" required>
-            </label>
-
-
-            <label class="full">
-                Trasferta
-                <input id="fixtureAway" required>
-            </label>
-
-
-            <label class="full">
-                Data/ora
-                <input id="fixtureDate" type="datetime-local">
-            </label>
-
-        </div>
-
-
-        <div class="modal-actions">
-
-            <button type="button" class="btn btn-ghost" data-close="fixtureDialog">
-                Annulla
-            </button>
-
-            <button type="submit" class="btn btn-primary">
-                Salva partita
-            </button>
-
-        </div>
-
+      <div class="dialog-actions">
+        <button type="button" class="btn btn-secondary" data-close="fixtureDialog">Annulla</button>
+        <button type="submit" class="btn btn-primary">Salva partita</button>
+      </div>
     </form>
+  </dialog>
 
-</dialog>
-
-
-<!-- NOTIFICHE -->
-
-<div id="toast" class="toast" role="status"></div>
-
-
-<!-- JAVASCRIPT -->
-
-<script type="module" src="js/app.js"></script>
+  <div id="toast" class="toast" role="status" aria-live="polite"></div>
 
 </body>
 </html>
