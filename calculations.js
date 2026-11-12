@@ -13,10 +13,12 @@ export function round2(value) {
 export function calcOdds(events) {
   if (!Array.isArray(events) || events.length === 0) return 0;
 
-  return round2(events.reduce((total, event) => {
-    const odds = Number(event.odds);
-    return total * (odds > 0 ? odds : 1);
-  }, 1));
+  return round2(
+    events.reduce((total, event) => {
+      const odds = Number(event.odds);
+      return total * (odds > 0 ? odds : 1);
+    }, 1)
+  );
 }
 
 export function calcPotential(stake, odds) {
@@ -25,11 +27,13 @@ export function calcPotential(stake, odds) {
 
 export function totals(bets) {
   const stake = bets.reduce(
-    (sum, bet) => sum + (Number(bet.stake) || 0), 0
+    (sum, bet) => sum + (Number(bet.stake) || 0),
+    0
   );
 
   const returned = bets.reduce(
-    (sum, bet) => sum + (Number(bet.actual) || 0), 0
+    (sum, bet) => sum + (Number(bet.actual) || 0),
+    0
   );
 
   const profit = returned - stake;
@@ -68,7 +72,6 @@ export function outcomeStats(bets) {
   };
 }
 
-// Statistiche di tutti gli eventi
 export function eventStats(bets) {
   const result = {
     total: 0,
@@ -103,7 +106,6 @@ export function eventStats(bets) {
   return result;
 }
 
-// Statistiche suddivise per mercato
 export function marketStats(bets) {
   const markets = {};
 
