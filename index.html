@@ -5,52 +5,44 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="theme-color" content="#101827">
-  <meta name="description" content="BETTING LAB - Gestione e analisi delle schedine sportive">
-
-  <title>BETTING LAB</title>
-
+  <meta name="description" content="Betting Lab - Analisi e statistiche delle tue schedine">
+  <title>Betting Lab</title>
   <link rel="manifest" href="./manifest.webmanifest">
   <link rel="icon" href="./icon.svg" type="image/svg+xml">
   <link rel="stylesheet" href="./style.css">
 </head>
 
 <body>
-
   <header class="app-header">
-    <div>
-      <h1>BETTING <span>LAB</span></h1>
-      <p>Il tuo centro di controllo delle schedine</p>
-    </div>
-
-    <div class="header-actions">
-      <button id="exportBtn" type="button">Esporta backup</button>
-
-      <label for="importFile" class="button secondary">
-        Importa backup
-      </label>
-      <input id="importFile" type="file" accept=".json,application/json" hidden>
-      <button id="importBtn" type="button" hidden>Importa</button>
+    <div class="header-content">
+      <div>
+        <h1>BETTING <span>LAB</span></h1>
+        <p>Il tuo laboratorio di analisi</p>
+      </div>
+      <div class="header-actions">
+        <button id="exportBtn" class="secondary-btn" type="button">Esporta backup</button>
+        <label class="secondary-btn import-label" for="importFile">
+          Importa backup
+        </label>
+        <input id="importFile" type="file" accept=".json,application/json" hidden>
+      </div>
     </div>
   </header>
 
   <main class="container">
-
     <section class="dashboard">
       <div class="stat-card">
-        <span>Puntate</span>
-        <strong id="statStake">€0,00</strong>
+        <span>Totale puntato</span>
+        <strong id="statStake">€ 0,00</strong>
       </div>
-
       <div class="stat-card">
-        <span>Vincite</span>
-        <strong id="statReturn">€0,00</strong>
+        <span>Totale incassato</span>
+        <strong id="statReturn">€ 0,00</strong>
       </div>
-
       <div class="stat-card">
-        <span>Profitto</span>
-        <strong id="statProfit">€0,00</strong>
+        <span>Profitto / Perdita</span>
+        <strong id="statProfit">€ 0,00</strong>
       </div>
-
       <div class="stat-card">
         <span>ROI</span>
         <strong id="statRoi">0%</strong>
@@ -58,29 +50,19 @@
     </section>
 
     <nav class="tabs">
-      <button class="tab active" data-tab="bets" type="button">
-        Schedine
-      </button>
-
-      <button class="tab" data-tab="stats" type="button">
-        Statistiche
-      </button>
-
-      <button class="tab" data-tab="fixtures" type="button">
-        Calendario
-      </button>
+      <button class="tab-btn active" data-tab="bets" type="button">Schedine</button>
+      <button class="tab-btn" data-tab="stats" type="button">Statistiche</button>
+      <button class="tab-btn" data-tab="fixtures" type="button">Calendario</button>
     </nav>
 
     <!-- SCHEDINE -->
-    <section id="betsPanel" class="panel active">
-
+    <section id="betsPanel" class="tab-panel active">
       <div class="section-heading">
         <div>
           <h2>Le mie schedine</h2>
-          <p>Gestisci e controlla le tue giocate</p>
+          <p>Gestisci le giocate Easy e Hard</p>
         </div>
-
-        <button id="newBetBtn" class="primary" type="button">
+        <button id="newBetBtn" class="primary-btn" type="button">
           + Nuova schedina
         </button>
       </div>
@@ -93,71 +75,62 @@
         </select>
 
         <select id="statusFilter">
-          <option value="all">Tutti gli stati</option>
+          <option value="all">Tutti gli esiti</option>
           <option value="pending">In attesa</option>
           <option value="won">Vinta</option>
           <option value="lost">Persa</option>
           <option value="void">Annullata</option>
         </select>
 
-        <input
-          id="searchInput"
-          type="search"
-          placeholder="Cerca squadra, partita o mercato..."
-        >
+        <input id="searchInput" type="search" placeholder="Cerca una squadra o una giornata...">
       </div>
 
       <div id="betsList" class="bets-list"></div>
-
     </section>
 
     <!-- STATISTICHE -->
-    <section id="statsPanel" class="panel">
-
+    <section id="statsPanel" class="tab-panel">
       <div class="section-heading">
         <div>
           <h2>Statistiche</h2>
-          <p>Analizza l'andamento delle tue schedine</p>
+          <p>Analisi delle schedine e dei singoli eventi</p>
         </div>
       </div>
 
-      <div class="stats-grid">
-
-        <div class="stat-card">
-          <h3>Easy / Hard</h3>
-          <div id="typeStats"></div>
-        </div>
-
-        <div class="stat-card">
-          <h3>Esiti</h3>
-          <div id="outcomeStats"></div>
-        </div>
-
-        <div class="stat-card">
-          <h3>Mercati utilizzati</h3>
-          <div id="marketStats"></div>
-        </div>
-
+      <div class="stats-section">
+        <h3>Risultati schedine</h3>
+        <div id="typeStats"></div>
+        <div id="outcomeStats"></div>
       </div>
 
+      <div class="stats-section">
+        <h3>Statistiche eventi</h3>
+        <div id="eventStats"></div>
+      </div>
+
+      <div class="stats-section">
+        <h3>Rendimento per mercato</h3>
+        <p class="section-description">
+          Confronta i mercati in base agli eventi vinti e persi.
+        </p>
+
+        <div id="marketStats"></div>
+      </div>
     </section>
 
     <!-- CALENDARIO -->
-    <section id="fixturesPanel" class="panel">
-
+    <section id="fixturesPanel" class="tab-panel">
       <div class="section-heading">
         <div>
-          <h2>Calendario</h2>
-          <p>Seleziona una giornata e consulta le partite</p>
+          <h2>Calendario Serie A</h2>
+          <p>Seleziona una giornata per visualizzare le partite</p>
         </div>
-
-        <button id="addFixtureBtn" type="button">
-          + Aggiungi partita
+        <button id="addFixtureBtn" class="secondary-btn" type="button">
+          + Partita manuale
         </button>
       </div>
 
       <div class="calendar-controls">
-
         <label>
           Stagione
           <select id="seasonSelect">
@@ -169,201 +142,230 @@
         <label>
           Giornata
           <select id="roundSelect">
-            <option value="1">Giornata 1</option>
-            <option value="2">Giornata 2</option>
-            <option value="3">Giornata 3</option>
-            <option value="4">Giornata 4</option>
-            <option value="5">Giornata 5</option>
-            <option value="6">Giornata 6</option>
-            <option value="7">Giornata 7</option>
-            <option value="8">Giornata 8</option>
-            <option value="9">Giornata 9</option>
-            <option value="10">Giornata 10</option>
-            <option value="11">Giornata 11</option>
-            <option value="12">Giornata 12</option>
-            <option value="13">Giornata 13</option>
-            <option value="14">Giornata 14</option>
-            <option value="15">Giornata 15</option>
-            <option value="16">Giornata 16</option>
-            <option value="17">Giornata 17</option>
-            <option value="18">Giornata 18</option>
-            <option value="19">Giornata 19</option>
-            <option value="20">Giornata 20</option>
-            <option value="21">Giornata 21</option>
-            <option value="22">Giornata 22</option>
-            <option value="23">Giornata 23</option>
-            <option value="24">Giornata 24</option>
-            <option value="25">Giornata 25</option>
-            <option value="26">Giornata 26</option>
-            <option value="27">Giornata 27</option>
-            <option value="28">Giornata 28</option>
-            <option value="29">Giornata 29</option>
-            <option value="30">Giornata 30</option>
-            <option value="31">Giornata 31</option>
-            <option value="32">Giornata 32</option>
-            <option value="33">Giornata 33</option>
-            <option value="34">Giornata 34</option>
-            <option value="35">Giornata 35</option>
-            <option value="36">Giornata 36</option>
-            <option value="37">Giornata 37</option>
-            <option value="38">Giornata 38</option>
+            <option value="">Seleziona giornata</option>
+            <option value="1">1ª giornata</option>
+            <option value="2">2ª giornata</option>
+            <option value="3">3ª giornata</option>
+            <option value="4">4ª giornata</option>
+            <option value="5">5ª giornata</option>
+            <option value="6">6ª giornata</option>
+            <option value="7">7ª giornata</option>
+            <option value="8">8ª giornata</option>
+            <option value="9">9ª giornata</option>
+            <option value="10">10ª giornata</option>
+            <option value="11">11ª giornata</option>
+            <option value="12">12ª giornata</option>
+            <option value="13">13ª giornata</option>
+            <option value="14">14ª giornata</option>
+            <option value="15">15ª giornata</option>
+            <option value="16">16ª giornata</option>
+            <option value="17">17ª giornata</option>
+            <option value="18">18ª giornata</option>
+            <option value="19">19ª giornata</option>
+            <option value="20">20ª giornata</option>
+            <option value="21">21ª giornata</option>
+            <option value="22">22ª giornata</option>
+            <option value="23">23ª giornata</option>
+            <option value="24">24ª giornata</option>
+            <option value="25">25ª giornata</option>
+            <option value="26">26ª giornata</option>
+            <option value="27">27ª giornata</option>
+            <option value="28">28ª giornata</option>
+            <option value="29">29ª giornata</option>
+            <option value="30">30ª giornata</option>
+            <option value="31">31ª giornata</option>
+            <option value="32">32ª giornata</option>
+            <option value="33">33ª giornata</option>
+            <option value="34">34ª giornata</option>
+            <option value="35">35ª giornata</option>
+            <option value="36">36ª giornata</option>
+            <option value="37">37ª giornata</option>
+            <option value="38">38ª giornata</option>
           </select>
         </label>
 
-        <button id="loadFixturesBtn" type="button">
-          Mostra partite
+        <button id="loadFixturesBtn" class="primary-btn" type="button">
+          Carica partite
         </button>
-
       </div>
 
       <div id="fixturesList" class="fixtures-list"></div>
-
-      <!-- Compatibilità con il vecchio JavaScript -->
-      <div hidden>
-        <button id="exportFixturesBtn" type="button"></button>
-        <button id="importFixturesBtn" type="button"></button>
-        <input id="fixturesFile" type="file">
-      </div>
-
     </section>
-
   </main>
 
   <!-- MODALE SCHEDINA -->
-  <dialog id="betDialog">
-
+  <dialog id="betDialog" class="app-dialog">
     <form id="betForm">
-
-      <div class="modal-heading">
-        <h2 id="betDialogTitle">Nuova schedina</h2>
-        <button type="button" id="closeBetDialog">✕</button>
+      <div class="dialog-heading">
+        <div>
+          <h2 id="betDialogTitle">Nuova schedina</h2>
+          <p>Inserisci i dati e aggiungi gli eventi</p>
+        </div>
+        <button id="closeBetDialog" class="close-btn" type="button">×</button>
       </div>
 
       <input id="betId" type="hidden">
 
-      <label>
-        Giornata
-        <input id="betRound" type="number" min="1" max="38">
-      </label>
+      <div class="form-grid">
+        <label>
+          Giornata
+          <input id="betRound" type="number" min="1" max="38" placeholder="Es. 8">
+        </label>
 
-      <label>
-        Tipologia
-        <select id="betType">
-          <option value="Easy">Easy</option>
-          <option value="Hard">Hard</option>
-        </select>
-      </label>
+        <label>
+          Tipologia
+          <select id="betType" required>
+            <option value="Easy">Easy</option>
+            <option value="Hard">Hard</option>
+          </select>
+        </label>
 
-      <label>
-        Data
-        <input id="betDate" type="date" required>
-      </label>
+        <label>
+          Data
+          <input id="betDate" type="date" required>
+        </label>
 
-      <label>
-        Puntata (€)
-        <input id="betStake" type="number" min="0" step="0.01" required>
-      </label>
+        <label>
+          Puntata (€)
+          <input id="betStake" type="number" min="0" step="0.01" value="7.50" required>
+        </label>
 
-      <label>
-        Quota totale
-        <input id="betOdds" type="number" min="0" step="0.01">
-      </label>
+        <label>
+          Quota totale
+          <input id="betOdds" type="number" min="0" step="0.01" value="0">
+        </label>
 
-      <label>
-        Vincita potenziale (€)
-        <input id="betPotential" type="number" min="0" step="0.01">
-      </label>
+        <label>
+          Vincita potenziale (€)
+          <input id="betPotential" type="number" min="0" step="0.01" value="0">
+        </label>
 
-      <label>
-        Stato
-        <select id="betStatus">
-          <option value="pending">In attesa</option>
-          <option value="won">Vinta</option>
-          <option value="lost">Persa</option>
-          <option value="void">Annullata</option>
-        </select>
-      </label>
+        <label>
+          Stato schedina
+          <select id="betStatus">
+            <option value="pending">In attesa</option>
+            <option value="won">Vinta</option>
+            <option value="lost">Persa</option>
+            <option value="void">Annullata</option>
+          </select>
+        </label>
 
-      <label>
-        Vincita effettiva (€)
-        <input id="betActual" type="number" min="0" step="0.01" value="0">
-      </label>
+        <label>
+          Incasso effettivo (€)
+          <input id="betActual" type="number" min="0" step="0.01" value="0">
+        </label>
+      </div>
 
-      <div class="fixture-picker">
-        <h3>Aggiungi una partita dal calendario</h3>
-        <select id="fixturePicker">
-          <option value="">Seleziona una partita</option>
-        </select>
-        <button id="addSelectedFixture" type="button">
-          Aggiungi partita
+      <div class="event-entry-section">
+        <h3>Aggiungi eventi alla schedina</h3>
+        <p class="section-description">
+          Seleziona la partita, scrivi la giocata e il mercato verrà riconosciuto automaticamente.
+        </p>
+
+        <label>
+          Partita
+          <select id="fixturePicker">
+            <option value="">Seleziona una partita</option>
+          </select>
+        </label>
+
+        <div class="form-grid event-entry-grid">
+          <label>
+            Giocata
+            <input id="eventPick" type="text" placeholder="Es. X2, Over 2.5, Cluster risultati..." autocomplete="off">
+          </label>
+
+          <label>
+            Mercato
+            <select id="eventMarket">
+              <option value="Esito 1X2">Esito 1X2</option>
+              <option value="Doppia chance">Doppia chance</option>
+              <option value="Goal / No Goal">Goal / No Goal</option>
+              <option value="Over / Under">Over / Under</option>
+              <option value="Multigol">Multigol</option>
+              <option value="Cluster risultati">Cluster risultati</option>
+              <option value="Risultato esatto">Risultato esatto</option>
+              <option value="Corner">Corner</option>
+              <option value="Cartellini">Cartellini</option>
+              <option value="Tiri in porta">Tiri in porta</option>
+              <option value="Combo">Combo</option>
+              <option value="Altro">Altro</option>
+            </select>
+          </label>
+
+          <label>
+            Quota evento
+            <input id="eventOdds" type="number" min="1" step="0.01" placeholder="Es. 1.45">
+          </label>
+        </div>
+
+        <button id="addEventBtn" class="primary-btn add-event-btn" type="button">
+          + Aggiungi alla schedina
         </button>
       </div>
 
       <div class="events-section">
-        <div class="section-heading">
-          <h3>Eventi della schedina</h3>
-          <button id="addEventBtn" type="button">+ Evento</button>
-        </div>
-
-        <div id="eventsEditor"></div>
+        <h3>Eventi inseriti</h3>
+        <p class="section-description">
+          Puoi modificare il mercato e indicare l'esito di ogni singolo evento.
+        </p>
+        <div id="eventsEditor" class="events-editor"></div>
       </div>
 
-      <div class="modal-actions">
-        <button type="button" id="cancelBetBtn">Annulla</button>
-        <button type="submit" class="primary">Salva schedina</button>
+      <div class="dialog-actions">
+        <button id="cancelBetBtn" class="secondary-btn" type="button">Annulla</button>
+        <button class="primary-btn" type="submit">Salva schedina</button>
       </div>
-
     </form>
-
   </dialog>
 
   <!-- MODALE PARTITA MANUALE -->
-  <dialog id="fixtureDialog">
-
+  <dialog id="fixtureDialog" class="app-dialog">
     <form id="fixtureForm">
-
-      <div class="modal-heading">
+      <div class="dialog-heading">
         <h2>Aggiungi partita</h2>
-        <button type="button" id="closeFixtureDialog">✕</button>
+        <button id="closeFixtureDialog" class="close-btn" type="button">×</button>
       </div>
 
-      <label>
-        Stagione
-        <input id="fixtureSeason" type="number" value="2026" required>
-      </label>
+      <div class="form-grid">
+        <label>
+          Stagione
+          <select id="fixtureSeason">
+            <option value="2026">2026/2027</option>
+            <option value="2025">2025/2026</option>
+          </select>
+        </label>
 
-      <label>
-        Giornata
-        <input id="fixtureRound" type="number" min="1" max="38" required>
-      </label>
+        <label>
+          Giornata
+          <input id="fixtureRound" type="number" min="1" max="38" required>
+        </label>
 
-      <label>
-        Squadra casa
-        <input id="fixtureHome" type="text" required>
-      </label>
+        <label>
+          Squadra casa
+          <input id="fixtureHome" type="text" required>
+        </label>
 
-      <label>
-        Squadra ospite
-        <input id="fixtureAway" type="text" required>
-      </label>
+        <label>
+          Squadra ospite
+          <input id="fixtureAway" type="text" required>
+        </label>
 
-      <label>
-        Data
-        <input id="fixtureDate" type="date">
-      </label>
-
-      <div class="modal-actions">
-        <button type="button" id="cancelFixtureBtn">Annulla</button>
-        <button type="submit" class="primary">Salva partita</button>
+        <label>
+          Data e ora
+          <input id="fixtureDate" type="datetime-local">
+        </label>
       </div>
 
+      <div class="dialog-actions">
+        <button id="cancelFixtureBtn" class="secondary-btn" type="button">Annulla</button>
+        <button class="primary-btn" type="submit">Salva partita</button>
+      </div>
     </form>
-
   </dialog>
 
-  <div id="toast" class="toast"></div>
+  <div id="toast" class="toast" role="status" aria-live="polite"></div>
 
   <script type="module" src="./app.js"></script>
-
 </body>
 </html>
