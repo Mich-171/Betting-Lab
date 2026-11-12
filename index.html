@@ -4,21 +4,24 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta name="theme-color" content="#101827">
+  <meta name="theme-color" content="#000000">
   <meta name="description" content="Betting Lab - Analisi e statistiche delle tue schedine">
   <title>Betting Lab</title>
   <link rel="manifest" href="./manifest.webmanifest">
   <link rel="icon" href="./icon.svg" type="image/svg+xml">
   <link rel="stylesheet" href="./style.css">
 </head>
-
 <body>
   <header class="app-header">
     <div class="header-content">
-      <div>
-        <h1>BETTING <span>LAB</span></h1>
-        <p>Il tuo laboratorio di analisi</p>
+      <div class="brand">
+        <img src="./icon.svg" alt="BETTING LAB" class="brand-logo">
+        <div>
+          <h1>BETTING <span>LAB</span></h1>
+          <p>Il tuo laboratorio di analisi</p>
+        </div>
       </div>
+
       <div class="header-actions">
         <button id="exportBtn" class="secondary-btn" type="button">Esporta backup</button>
         <label class="secondary-btn import-label" for="importFile">
@@ -113,7 +116,6 @@
         <p class="section-description">
           Confronta i mercati in base agli eventi vinti e persi.
         </p>
-
         <div id="marketStats"></div>
       </div>
     </section>
