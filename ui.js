@@ -7,19 +7,12 @@ import {
   marketStats
 } from "./calculations.js";
 
-// ================================
 // ELEMENTI HTML
-// ================================
-
 export const $ = id => document.getElementById(id);
 
-// ================================
 // NOTIFICHE
-// ================================
-
 export function toast(message) {
   const element = $("toast");
-
   if (!element) return;
 
   element.textContent = message;
@@ -32,10 +25,22 @@ export function toast(message) {
   }, 2500);
 }
 
-// ================================
-// DASHBOARD
-// ================================
+// SICUREZZA TESTI HTML
+function escapeHTML(value) {
+  return String(value ?? "").replace(/[&<>"']/g, character => {
+    const entities = {
+      "&": "&amp;",
+      "<": "&lt;",
+      ">": "&gt;",
+      '"': "&quot;",
+      "'": "&#039;"
+    };
 
+    return entities[character];
+  });
+}
+
+// DASHBOARD
 export function renderDashboard(bets) {
   const result = totals(bets);
 
@@ -44,14 +49,13 @@ export function renderDashboard(bets) {
   $("statProfit").textContent = money(result.profit);
   $("statRoi").textContent = result.roi.toFixed(2) + "%";
 
-  $("statProfit").className =
-    result.profit >= 0 ? "positive" : "negative";
+  $("statProfit").classList.remove("positive", "negative");
+  $("statProfit").classList.add(
+    result.profit >= 0 ? "positive" : "negative"
+  );
 }
 
-// ================================
-// ETICHETTE DEGLI ESITI
-// ================================
-
+// ETICHETTE ESITI
 function statusLabel(status) {
   const labels = {
     pending: "In attesa",
@@ -63,10 +67,7 @@ function statusLabel(status) {
   return labels[status] || "In attesa";
 }
 
-// ================================
 // VISUALIZZAZIONE SCHEDINE
-// ================================
-
 export function renderBets(bets) {
   const container = $("betsList");
 
@@ -91,12 +92,14 @@ export function renderBets(bets) {
       <p>
         ${escapeHTML(event.home || event.match || "Partita")}
         ${event.away ? " - " + escapeHTML(event.away) : ""}
-        · ${escapeHTML(event.market || "")}
+        ${event.market ? " · " + escapeHTML(event.market) : ""}
         ${event.pick ? ": " + escapeHTML(event.pick) : ""}
+        ${event.odds ? " @ " + Number(event.odds).toFixed(2) : ""}
       </p>
     `).join("");
 
     const status = bet.status || "pending";
+    const betId = escapeHTML(bet.id || "");
 
     return `
       <article class="bet-card">
@@ -114,11 +117,13 @@ export function renderBets(bets) {
           </p>
 
           <p>
-            Vincita potenziale: <strong>${money(bet.potential)}</strong>
-            · Incasso: <strong>${money(bet.actual)}</strong>
+            Vincita potenziale:
+            <strong>${money(bet.potential)}</strong>
+            · Incasso:
+            <strong>${money(bet.actual)}</strong>
           </p>
 
-          <span class="status status-${status}">
+          <span class="status status-${escapeHTML(status)}">
             ${statusLabel(status)}
           </span>
 
@@ -128,11 +133,17 @@ export function renderBets(bets) {
         </div>
 
         <div class="bet-actions">
-          <button type="button" data-edit-bet="${escapeHTML(bet.id)}">
+          <button
+            type="button"
+            data-edit-bet="${betId}"
+          >
             Modifica
           </button>
 
-          <button type="button" data-delete-bet="${escapeHTML(bet.id)}">
+          <button
+            type="button"
+            data-delete-bet="${betId}"
+          >
             Elimina
           </button>
         </div>
@@ -141,28 +152,7 @@ export function renderBets(bets) {
   }).join("");
 }
 
-// ================================
-// SICUREZZA TESTI HTML
-// ================================
-
-function escapeHTML(value) {
-  return String(value ?? "").replace(/[&<>"']/g, character => {
-    const entities = {
-      "&": "&amp;",
-      "<": "&lt;",
-      ">": "&gt;",
-      '"': "&quot;",
-      "'": "&#039;"
-    };
-
-    return entities[character];
-  });
-}
-
-// ================================
 // STATISTICHE
-// ================================
-
 export function renderStats(bets) {
   const easy = byType(bets, "Easy");
   const hard = byType(bets, "Hard");
@@ -200,34 +190,36 @@ function typeBlock(name, data) {
   return `
     <div class="type-stat-block">
       <h4>${name}</h4>
+
       <p>Schedine: <strong>${data.count}</strong></p>
       <p>Puntato: <strong>${money(data.stake)}</strong></p>
       <p>Incassato: <strong>${money(data.returned)}</strong></p>
+
       <p>
         Profitto:
         <strong class="${profitClass}">${money(data.profit)}</strong>
       </p>
+
       <p>ROI: <strong>${data.roi.toFixed(2)}%</strong></p>
+
       <p>
-        Vinte: ${data.won} · Perse: ${data.lost}
+        Vinte: ${data.won}
+        · Perse: ${data.lost}
         · In attesa: ${data.pending}
       </p>
     </div>
   `;
 }
 
-// ================================
 // CALENDARIO
-// ================================
-
-export function renderFixtures(fixtures, onRemove) {
+export function renderFixtures(fixtures) {
   const container = $("fixturesList");
 
   if (!fixtures.length) {
     container.innerHTML = `
       <div class="empty-state">
-        <h3>Nessuna partita inserita</h3>
-        <p>Aggiungi le partite o importa un calendario JSON.</p>
+        <h3>Nessuna partita disponibile</h3>
+        <p>Controlla la stagione e la giornata selezionate.</p>
       </div>
     `;
     return;
@@ -246,28 +238,30 @@ export function renderFixtures(fixtures, onRemove) {
           · Stagione ${fixture.season}/${Number(fixture.season) + 1}
         </p>
 
-        <p>${escapeHTML(fixture.date || "Data non specificata")}</p>
+        <p>
+          ${escapeHTML(fixture.date || "Data da definire")}
+        </p>
       </div>
 
       <button
         type="button"
         data-remove-fixture="${escapeHTML(fixture.id)}"
+        aria-label="Nascondi partita"
       >
-        Elimina
+        Nascondi
       </button>
     </article>
   `).join("");
 }
 
-// ================================
 // SELETTORE PARTITE NELLA SCHEDINA
-// ================================
-
 export function renderFixturePicker(fixtures) {
   const select = $("fixturePicker");
 
+  if (!select) return;
+
   select.innerHTML = `
-    <option value="">Seleziona una partita dal calendario</option>
+    <option value="">Seleziona una partita</option>
     ${fixtures.map(fixture => `
       <option value="${escapeHTML(fixture.id)}">
         ${escapeHTML(fixture.home)} - ${escapeHTML(fixture.away)}
@@ -276,11 +270,8 @@ export function renderFixturePicker(fixtures) {
   `;
 }
 
-// ================================
-// EDITOR DELLE SELEZIONI
-// ================================
-
-export function renderEvents(events, onRemove) {
+// EDITOR EVENTI SCHEDINA
+export function renderEvents(events) {
   const container = $("eventsEditor");
 
   if (!events.length) {
@@ -296,8 +287,15 @@ export function renderEvents(events, onRemove) {
       <input
         type="text"
         data-field="home"
-        placeholder="Partita"
+        placeholder="Squadra casa"
         value="${escapeHTML(event.home || event.match || "")}"
+      >
+
+      <input
+        type="text"
+        data-field="away"
+        placeholder="Squadra ospite"
+        value="${escapeHTML(event.away || "")}"
       >
 
       <input
@@ -320,7 +318,7 @@ export function renderEvents(events, onRemove) {
         min="1"
         step="0.01"
         placeholder="Quota"
-        value="${escapeHTML(event.odds || "")}"
+        value="${event.odds ? escapeHTML(event.odds) : ""}"
       >
 
       <button
@@ -335,10 +333,7 @@ export function renderEvents(events, onRemove) {
   `).join("");
 }
 
-// ================================
-// FILTRI
-// ================================
-
+// FILTRI SCHEDINE
 export function filterBets(bets) {
   const type = $("typeFilter").value;
   const status = $("statusFilter").value;
@@ -349,7 +344,7 @@ export function filterBets(bets) {
       type === "all" || bet.type === type;
 
     const matchesStatus =
-      status === "all" || bet.status === status;
+      status === "all" || (bet.status || "pending") === status;
 
     const searchable = [
       bet.type,
