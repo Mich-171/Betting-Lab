@@ -4,13 +4,24 @@ import {
   totals,
   byType,
   outcomeStats,
+  eventStats,
   marketStats
 } from "./calculations.js";
 
-// ELEMENTI HTML
-export const $ = id => document.getElementById(id);
+export function $(id) {
+  return document.getElementById(id);
+}
 
-// NOTIFICHE
+export function escapeHTML(value) {
+  return String(value ?? "").replace(/[&<>"']/g, char => ({
+    "&": "&amp;",
+    "<": "&lt;",
+    ">": "&gt;",
+    '"': "&quot;",
+    "'": "&#039;"
+  })[char]);
+}
+
 export function toast(message) {
   const element = $("toast");
   if (!element) return;
@@ -18,44 +29,12 @@ export function toast(message) {
   element.textContent = message;
   element.classList.add("show");
 
-  clearTimeout(toast.timeout);
-
-  toast.timeout = setTimeout(() => {
+  clearTimeout(element._timer);
+  element._timer = setTimeout(() => {
     element.classList.remove("show");
-  }, 2500);
+  }, 2600);
 }
 
-// SICUREZZA TESTI HTML
-function escapeHTML(value) {
-  return String(value ?? "").replace(/[&<>"']/g, character => {
-    const entities = {
-      "&": "&amp;",
-      "<": "&lt;",
-      ">": "&gt;",
-      '"': "&quot;",
-      "'": "&#039;"
-    };
-
-    return entities[character];
-  });
-}
-
-// DASHBOARD
-export function renderDashboard(bets) {
-  const result = totals(bets);
-
-  $("statStake").textContent = money(result.stake);
-  $("statReturn").textContent = money(result.returned);
-  $("statProfit").textContent = money(result.profit);
-  $("statRoi").textContent = result.roi.toFixed(2) + "%";
-
-  $("statProfit").classList.remove("positive", "negative");
-  $("statProfit").classList.add(
-    result.profit >= 0 ? "positive" : "negative"
-  );
-}
-
-// ETICHETTE ESITI
 function statusLabel(status) {
   const labels = {
     pending: "In attesa",
@@ -67,77 +46,107 @@ function statusLabel(status) {
   return labels[status] || "In attesa";
 }
 
-// VISUALIZZAZIONE SCHEDINE
-export function renderBets(bets) {
-  const container = $("betsList");
+function statusOptions(current) {
+  const selected = current || "pending";
 
+  return [
+    ["pending", "In attesa"],
+    ["won", "Vinto"],
+    ["lost", "Perso"],
+    ["void", "Annullato"]
+  ].map(([value, label]) => `
+    <option value="${value}" ${selected === value ? "selected" : ""}>
+      ${label}
+    </option>
+  `).join("");
+}
+
+export function renderDashboard(bets) {
+  const result = totals(bets);
+
+  $("statStake").textContent = money(result.stake);
+  $("statReturn").textContent = money(result.returned);
+  $("statProfit").textContent = money(result.profit);
+  $("statRoi").textContent = `${result.roi.toFixed(2)}%`;
+
+  $("statProfit").classList.toggle("positive", result.profit > 0);
+  $("statProfit").classList.toggle("negative", result.profit < 0);
+}
+
+export function renderBets(bets) {
   if (!bets.length) {
-    container.innerHTML = `
+    return `
       <div class="empty-state">
         <h3>Nessuna schedina presente</h3>
-        <p>Premi "Nuova schedina" per iniziare.</p>
+        <p>Crea la tua prima schedina per iniziare a monitorare i risultati.</p>
       </div>
     `;
-    return;
   }
 
-  const ordered = [...bets].sort((a, b) => {
-    return new Date(b.date || 0) - new Date(a.date || 0);
-  });
-
-  container.innerHTML = ordered.map(bet => {
+  return bets.map(bet => {
     const events = bet.events || [];
-
-    const eventNames = events.map(event => `
-      <p>
-        ${escapeHTML(event.home || event.match || "Partita")}
-        ${event.away ? " - " + escapeHTML(event.away) : ""}
-        ${event.market ? " · " + escapeHTML(event.market) : ""}
-        ${event.pick ? ": " + escapeHTML(event.pick) : ""}
-        ${event.odds ? " @ " + Number(event.odds).toFixed(2) : ""}
-      </p>
-    `).join("");
-
     const status = bet.status || "pending";
-    const betId = escapeHTML(bet.id || "");
 
     return `
       <article class="bet-card">
-        <div class="bet-info">
-          <h3>
-            ${escapeHTML(bet.type || "Easy")}
-            ${bet.round ? " · " + bet.round + "ª giornata" : ""}
-          </h3>
+        <div class="bet-card-header">
+          <div>
+            <span class="bet-type ${escapeHTML(bet.type || "Easy")}">
+              ${escapeHTML(bet.type || "Easy")}
+            </span>
+            <h3>Giornata ${escapeHTML(bet.round || "-")}</h3>
+            <small>${escapeHTML(bet.date || "")}</small>
+          </div>
 
-          <p>Data: ${escapeHTML(bet.date || "Non specificata")}</p>
-
-          <p>
-            Puntata: <strong>${money(bet.stake)}</strong>
-            · Quota: ${Number(bet.odds || 0).toFixed(2)}
-          </p>
-
-          <p>
-            Vincita potenziale:
-            <strong>${money(bet.potential)}</strong>
-            · Incasso:
-            <strong>${money(bet.actual)}</strong>
-          </p>
-
-          <span class="status status-${escapeHTML(status)}">
+          <span class="status-badge status-${escapeHTML(status)}">
             ${statusLabel(status)}
           </span>
+        </div>
 
-          <div class="bet-events">
-            ${eventNames}
+        <div class="bet-summary">
+          <div>
+            <span>Puntata</span>
+            <strong>${money(bet.stake)}</strong>
+          </div>
+          <div>
+            <span>Quota</span>
+            <strong>${Number(bet.odds || 0).toFixed(2)}</strong>
+          </div>
+          <div>
+            <span>Vincita potenziale</span>
+            <strong>${money(bet.potential)}</strong>
+          </div>
+          <div>
+            <span>Incasso effettivo</span>
+            <strong>${money(bet.actual)}</strong>
           </div>
         </div>
 
-        <div class="bet-actions">
-          <button type="button" data-edit-bet="${betId}">
+        <div class="bet-events-summary">
+          <strong>${events.length} eventi</strong>
+          ${events.map(event => `
+            <div class="bet-event-line">
+              <span>
+                ${escapeHTML(event.home || "")}
+                - ${escapeHTML(event.away || "")}
+              </span>
+              <span>${escapeHTML(event.market || "Altro")}</span>
+              <span>${escapeHTML(event.pick || "")}</span>
+              <span class="event-result-label result-${escapeHTML(event.result || "pending")}">
+                ${statusLabel(event.result)}
+              </span>
+            </div>
+          `).join("")}
+        </div>
+
+        <div class="bet-card-actions">
+          <button type="button" class="secondary-btn" data-edit-bet="${escapeHTML(bet.id)}">
             Modifica
           </button>
-
-          <button type="button" data-delete-bet="${betId}">
+          <button type="button" class="secondary-btn" data-copy-bet="${escapeHTML(bet.id)}">
+            Duplica
+          </button>
+          <button type="button" class="danger-btn" data-delete-bet="${escapeHTML(bet.id)}">
             Elimina
           </button>
         </div>
@@ -146,114 +155,161 @@ export function renderBets(bets) {
   }).join("");
 }
 
-// STATISTICHE
 export function renderStats(bets) {
   const easy = byType(bets, "Easy");
   const hard = byType(bets, "Hard");
+  const outcomes = outcomeStats(bets);
+  const events = eventStats(bets);
+  const markets = marketStats(bets);
 
   $("typeStats").innerHTML = `
-    ${typeBlock("Easy", easy)}
-    ${typeBlock("Hard", hard)}
+    <div class="stats-grid">
+      ${[
+        ["Easy", easy],
+        ["Hard", hard]
+      ].map(([name, item]) => `
+        <article class="stats-card">
+          <h4>${name}</h4>
+          <p>Schedine: <strong>${item.count}</strong></p>
+          <p>Puntato: <strong>${money(item.stake)}</strong></p>
+          <p>Incassato: <strong>${money(item.returned)}</strong></p>
+          <p>Profitto: <strong>${money(item.profit)}</strong></p>
+          <p>ROI: <strong>${item.roi.toFixed(2)}%</strong></p>
+          <p>Vinte: <strong>${item.won}</strong></p>
+          <p>Perse: <strong>${item.lost}</strong></p>
+          <p>In attesa: <strong>${item.pending}</strong></p>
+        </article>
+      `).join("")}
+    </div>
   `;
-
-  const outcomes = outcomeStats(bets);
 
   $("outcomeStats").innerHTML = `
-    <p>Vinte: <strong class="positive">${outcomes.won}</strong></p>
-    <p>Perse: <strong class="negative">${outcomes.lost}</strong></p>
-    <p>In attesa: <strong>${outcomes.pending}</strong></p>
-    <p>Annullate: <strong>${outcomes.void}</strong></p>
+    <div class="stats-grid">
+      <article class="stats-card">
+        <h4>Esito schedine</h4>
+        <p>Vinte: <strong>${outcomes.won}</strong></p>
+        <p>Perse: <strong>${outcomes.lost}</strong></p>
+        <p>In attesa: <strong>${outcomes.pending}</strong></p>
+        <p>Annullate: <strong>${outcomes.void}</strong></p>
+      </article>
+    </div>
   `;
 
-  const markets = marketStats(bets);
-  const entries = Object.entries(markets);
+  $("eventStats").innerHTML = `
+    <div class="stats-grid">
+      <article class="stats-card">
+        <h4>Totale eventi</h4>
+        <strong class="large-stat">${events.total}</strong>
+        <p>Vinti: <strong>${events.won}</strong></p>
+        <p>Persi: <strong>${events.lost}</strong></p>
+        <p>In attesa: <strong>${events.pending}</strong></p>
+        <p>Annullati: <strong>${events.void}</strong></p>
+      </article>
 
-  $("marketStats").innerHTML = entries.length
-    ? entries.map(([name, data]) => `
-        <p>
-          ${escapeHTML(name)}:
-          <strong>${data.count}</strong> selezioni
+      <article class="stats-card">
+        <h4>Percentuali eventi conclusi</h4>
+        <strong class="large-stat">${events.winRate.toFixed(2)}%</strong>
+        <p>Percentuale vinti</p>
+        <p>Percentuale persi: <strong>${events.lossRate.toFixed(2)}%</strong></p>
+        <p class="section-description">
+          Le percentuali considerano solo gli eventi vinti e persi.
         </p>
-      `).join("")
-    : "<p>Nessun mercato registrato.</p>";
-}
+      </article>
+    </div>
+  `;
 
-function typeBlock(name, data) {
-  const profitClass = data.profit >= 0 ? "positive" : "negative";
+  const marketEntries = Object.entries(markets);
 
-  return `
-    <div class="type-stat-block">
-      <h4>${name}</h4>
-      <p>Schedine: <strong>${data.count}</strong></p>
-      <p>Puntato: <strong>${money(data.stake)}</strong></p>
-      <p>Incassato: <strong>${money(data.returned)}</strong></p>
+  const sortedBest = [...marketEntries].sort((a, b) => {
+    if (b[1].winRate !== a[1].winRate) {
+      return b[1].winRate - a[1].winRate;
+    }
+    return b[1].won - a[1].won;
+  });
 
-      <p>
-        Profitto:
-        <strong class="${profitClass}">${money(data.profit)}</strong>
-      </p>
+  const sortedWorst = [...marketEntries].sort((a, b) => {
+    if (a[1].winRate !== b[1].winRate) {
+      return a[1].winRate - b[1].winRate;
+    }
+    return b[1].lost - a[1].lost;
+  });
 
-      <p>ROI: <strong>${data.roi.toFixed(2)}%</strong></p>
+  function marketTable(entries) {
+    if (!entries.length) {
+      return `<p class="empty-state">Non ci sono ancora eventi registrati.</p>`;
+    }
 
-      <p>
-        Vinte: ${data.won}
-        · Perse: ${data.lost}
-        · In attesa: ${data.pending}
-      </p>
+    return `
+      <div class="table-wrapper">
+        <table class="market-table">
+          <thead>
+            <tr>
+              <th>Mercato</th>
+              <th>Eventi</th>
+              <th>Vinti</th>
+              <th>Persi</th>
+              <th>In attesa</th>
+              <th>% vinti</th>
+              <th>% persi</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${entries.map(([name, item]) => `
+              <tr>
+                <td><strong>${escapeHTML(name)}</strong></td>
+                <td>${item.count}</td>
+                <td class="positive">${item.won}</td>
+                <td class="negative">${item.lost}</td>
+                <td>${item.pending}</td>
+                <td>${item.winRate.toFixed(2)}%</td>
+                <td>${item.lossRate.toFixed(2)}%</td>
+              </tr>
+            `).join("")}
+          </tbody>
+        </table>
+      </div>
+    `;
+  }
+
+  $("marketStats").innerHTML = `
+    <div class="market-ranking">
+      <h4>Mercati più vincenti</h4>
+      ${marketTable(sortedBest)}
+    </div>
+
+    <div class="market-ranking">
+      <h4>Mercati più perdenti</h4>
+      ${marketTable(sortedWorst)}
     </div>
   `;
 }
 
-// CALENDARIO
 export function renderFixtures(fixtures) {
-  const container = $("fixturesList");
-
   if (!fixtures.length) {
-    container.innerHTML = `
-      <div class="empty-state">
-        <h3>Nessuna partita disponibile</h3>
-        <p>Controlla la stagione e la giornata selezionate.</p>
-      </div>
-    `;
-    return;
+    return `<div class="empty-state">Nessuna partita trovata per questa giornata.</div>`;
   }
 
-  container.innerHTML = fixtures.map(fixture => `
+  return fixtures.map(fixture => `
     <article class="fixture-card">
       <div>
-        <h3>
-          ${escapeHTML(fixture.home)}
-          - ${escapeHTML(fixture.away)}
-        </h3>
-
-        <p>
-          Giornata ${fixture.round}
-          · Stagione ${fixture.season}/${Number(fixture.season) + 1}
-        </p>
-
-        <p>
-          ${escapeHTML(fixture.date || "Data da definire")}
-        </p>
+        <strong>${escapeHTML(fixture.home)}</strong>
+        <span> - </span>
+        <strong>${escapeHTML(fixture.away)}</strong>
       </div>
-
+      <small>${escapeHTML(fixture.date || "")}</small>
       <button
         type="button"
+        class="secondary-btn"
         data-remove-fixture="${escapeHTML(fixture.id)}"
-        aria-label="Nascondi partita"
       >
-        Nascondi
+        Rimuovi
       </button>
     </article>
   `).join("");
 }
 
-// SELETTORE PARTITE NELLA SCHEDINA
 export function renderFixturePicker(fixtures) {
-  const select = $("fixturePicker");
-
-  if (!select) return;
-
-  select.innerHTML = `
+  return `
     <option value="">Seleziona una partita</option>
     ${fixtures.map(fixture => `
       <option value="${escapeHTML(fixture.id)}">
@@ -263,155 +319,107 @@ export function renderFixturePicker(fixtures) {
   `;
 }
 
-// MERCATI DISPONIBILI
-const marketOptions = [
-  "Esito 1X2",
-  "Doppia chance",
-  "Goal / No Goal",
-  "Over / Under",
-  "Multigol",
-  "Risultato esatto",
-  "Corner",
-  "Cartellini",
-  "Tiri in porta",
-  "Combo",
-  "Altro"
-];
-
-// EDITOR EVENTI SCHEDINA
 export function renderEvents(events) {
-  const container = $("eventsEditor");
-
   if (!events.length) {
-    container.innerHTML = `
-      <p class="empty-state">Nessuna partita aggiunta.</p>
-    `;
-    return;
-  }
-
-  container.innerHTML = events.map((event, index) => {
-    const currentMarket = event.market || "";
-
-    const isCustomMarket =
-      currentMarket && !marketOptions.includes(currentMarket);
-
-    const marketOptionsHTML = `
-      <option value="">Seleziona mercato</option>
-
-      ${isCustomMarket ? `
-        <option value="${escapeHTML(currentMarket)}" selected>
-          ${escapeHTML(currentMarket)}
-        </option>
-      ` : ""}
-
-      ${marketOptions.map(market => `
-        <option
-          value="${escapeHTML(market)}"
-          ${currentMarket === market ? "selected" : ""}
-        >
-          ${escapeHTML(market)}
-        </option>
-      `).join("")}
-    `;
-
     return `
-      <div class="event-row" data-event-index="${index}">
-
-        <div class="event-teams">
-          <label>
-            Squadra casa
-            <input
-              type="text"
-              data-field="home"
-              placeholder="Es. Inter"
-              value="${escapeHTML(event.home || event.match || "")}"
-            >
-          </label>
-
-          <label>
-            Squadra ospite
-            <input
-              type="text"
-              data-field="away"
-              placeholder="Es. Milan"
-              value="${escapeHTML(event.away || "")}"
-            >
-          </label>
-        </div>
-
-        <div class="event-details">
-          <label>
-            Mercato
-            <select data-field="market">
-              ${marketOptionsHTML}
-            </select>
-          </label>
-
-          <label>
-            Pronostico
-            <input
-              type="text"
-              data-field="pick"
-              placeholder="Es. 1X, Over 1.5..."
-              value="${escapeHTML(event.pick || "")}"
-            >
-          </label>
-        </div>
-
-        <div class="event-footer">
-          <label>
-            Quota
-            <input
-              type="number"
-              data-field="odds"
-              min="1"
-              step="0.01"
-              inputmode="decimal"
-              placeholder="1.50"
-              value="${event.odds ? escapeHTML(event.odds) : ""}"
-            >
-          </label>
-
-          <button
-            type="button"
-            class="remove-event-btn"
-            data-remove-event="${index}"
-            aria-label="Rimuovi selezione"
-          >
-            Rimuovi
-          </button>
-        </div>
-
+      <div class="empty-state">
+        <p>Non hai ancora aggiunto eventi a questa schedina.</p>
       </div>
     `;
-  }).join("");
+  }
+
+  return events.map((event, index) => `
+    <article class="event-card" data-event-index="${index}">
+      <div class="event-card-heading">
+        <strong>
+          ${escapeHTML(event.home || "")} - ${escapeHTML(event.away || "")}
+        </strong>
+        <button
+          type="button"
+          class="danger-btn"
+          data-remove-event="${index}"
+        >
+          Rimuovi
+        </button>
+      </div>
+
+      <div class="form-grid event-fields">
+        <label>
+          Mercato
+          <select data-field="market" data-index="${index}">
+            ${[
+              "Esito 1X2",
+              "Doppia chance",
+              "Goal / No Goal",
+              "Over / Under",
+              "Multigol",
+              "Cluster risultati",
+              "Risultato esatto",
+              "Corner",
+              "Cartellini",
+              "Tiri in porta",
+              "Combo",
+              "Altro"
+            ].map(market => `
+              <option value="${market}" ${(event.market || "Altro") === market ? "selected" : ""}>
+                ${market}
+              </option>
+            `).join("")}
+          </select>
+        </label>
+
+        <label>
+          Giocata
+          <input
+            type="text"
+            data-field="pick"
+            data-index="${index}"
+            value="${escapeHTML(event.pick || "")}"
+          >
+        </label>
+
+        <label>
+          Quota
+          <input
+            type="number"
+            min="1"
+            step="0.01"
+            data-field="odds"
+            data-index="${index}"
+            value="${escapeHTML(event.odds ?? "")}"
+          >
+        </label>
+
+        <label>
+          Esito evento
+          <select data-field="result" data-index="${index}">
+            ${statusOptions(event.result)}
+          </select>
+        </label>
+      </div>
+    </article>
+  `).join("");
 }
 
-// FILTRI SCHEDINE
-export function filterBets(bets) {
-  const type = $("typeFilter").value;
-  const status = $("statusFilter").value;
-  const search = $("searchInput").value.toLowerCase().trim();
+export function filterBets(bets, type, status, search) {
+  const query = String(search || "").toLowerCase().trim();
 
   return bets.filter(bet => {
-    const matchesType =
-      type === "all" || bet.type === type;
-
-    const matchesStatus =
-      status === "all" || (bet.status || "pending") === status;
+    const matchesType = type === "all" || bet.type === type;
+    const matchesStatus = status === "all" || (bet.status || "pending") === status;
 
     const searchable = [
+      bet.round,
       bet.type,
       bet.date,
-      bet.round,
-      ...(bet.events || []).map(event =>
-        `${event.home || ""} ${event.away || ""} ${event.market || ""} ${event.pick || ""}`
-      )
+      ...(bet.events || []).flatMap(event => [
+        event.home,
+        event.away,
+        event.market,
+        event.pick
+      ])
     ].join(" ").toLowerCase();
 
-    const matchesSearch =
-      !search || searchable.includes(search);
-
-    return matchesType && matchesStatus && matchesSearch;
+    return matchesType && matchesStatus && searchable.includes(query);
   });
 }
