@@ -1,108 +1,129 @@
 
-import {
-  loadFixtures,
-  saveFixtures
-} from "./storage.js";
+import { loadFixtures, saveFixtures } from "./storage.js";
+import { serieA2026Fixtures } from "./seriea-calendar.js";
 
-// ================================
-// RECUPERA TUTTE LE PARTITE
-// ================================
-
-export function allFixtures() {
-  return loadFixtures();
+function getStoredFixtures() {
+  return loadFixtures() || [];
 }
 
-// ================================
-// PARTITE DI UNA GIORNATA
-// ================================
+export function allFixtures() {
+  const stored = getStoredFixtures();
+
+  // Partite ufficiali nascoste dall'utente
+  const hiddenIds = stored
+    .filter(fixture => fixture.deleted === true)
+    .map(fixture => fixture.id);
+
+  // Partite inserite manualmente
+  const customFixtures = stored.filter(
+    fixture => fixture.deleted !== true
+  );
+
+  // Evita duplicati tra calendario ufficiale e partite manuali
+  const officialKeys = new Set(
+    serieA2026Fixtures.map(fixture =>
+      `${fixture.season}-${fixture.round}-${fixture.home}-${fixture.away}`
+    )
+  );
+
+  const filteredCustom = customFixtures.filter(fixture => {
+    const key =
+      `${fixture.season}-${fixture.round}-${fixture.home}-${fixture.away}`;
+
+    return !officialKeys.has(key);
+  });
+
+  const officialFixtures = serieA2026Fixtures.filter(
+    fixture => !hiddenIds.includes(fixture.id)
+  );
+
+  return [...officialFixtures, ...filteredCustom];
+}
 
 export function fixturesFor(season, round) {
   return allFixtures().filter(fixture =>
-    String(fixture.season) === String(season) &&
+    Number(fixture.season) === Number(season) &&
     Number(fixture.round) === Number(round)
   );
 }
 
-// ================================
-// AGGIUNGI UNA PARTITA
-// ================================
-
 export function addFixture(fixture) {
-  const fixtures = allFixtures();
+  const stored = getStoredFixtures();
 
-  const normalized = {
-    id: fixture.id || crypto.randomUUID(),
+  const newFixture = {
+    id: crypto.randomUUID(),
     season: Number(fixture.season),
     round: Number(fixture.round),
-    home: String(fixture.home || "").trim(),
-    away: String(fixture.away || "").trim(),
+    home: fixture.home.trim(),
+    away: fixture.away.trim(),
     date: fixture.date || ""
   };
 
-  if (
-    !normalized.season ||
-    !normalized.round ||
-    !normalized.home ||
-    !normalized.away
-  ) {
-    throw new Error("Completa tutti i dati obbligatori della partita");
-  }
+  stored.push(newFixture);
+  saveFixtures(stored);
 
-  fixtures.push(normalized);
-
-  saveFixtures(fixtures);
-
-  return fixtures;
+  return newFixture;
 }
-
-// ================================
-// ELIMINA UNA PARTITA
-// ================================
 
 export function removeFixture(id) {
-  const fixtures = allFixtures();
+  const stored = getStoredFixtures();
 
-  const updated = fixtures.filter(
-    fixture => fixture.id !== id
+  // Se è una partita ufficiale, la nascondiamo senza cancellare
+  // il calendario originale dal codice.
+  const isOfficial = serieA2026Fixtures.some(
+    fixture => fixture.id === id
   );
 
-  saveFixtures(updated);
+  if (isOfficial) {
+    const alreadyHidden = stored.some(
+      fixture => fixture.id === id && fixture.deleted === true
+    );
 
-  return updated;
-}
-
-// ================================
-// IMPORTA UN CALENDARIO JSON
-// ================================
-
-export function importFixtures(items) {
-  if (!Array.isArray(items)) {
-    throw new Error("Il calendario deve essere un array JSON");
+    if (!alreadyHidden) {
+      stored.push({
+        id,
+        deleted: true
+      });
+    }
+  } else {
+    const updated = stored.filter(fixture => fixture.id !== id);
+    saveFixtures(updated);
+    return;
   }
 
-  const normalized = items.map(fixture => ({
+  saveFixtures(stored);
+}
+
+export function importFixtures(fixtures) {
+  if (!Array.isArray(fixtures)) {
+    throw new Error("Il calendario deve essere un array.");
+  }
+
+  const validFixtures = fixtures.filter(fixture =>
+    fixture &&
+    fixture.home &&
+    fixture.away &&
+    fixture.season &&
+    fixture.round
+  );
+
+  const oldStored = getStoredFixtures();
+
+  // Mantiene le eventuali partite ufficiali nascoste
+  const hiddenFixtures = oldStored.filter(
+    fixture => fixture.deleted === true
+  );
+
+  const importedFixtures = validFixtures.map(fixture => ({
     id: fixture.id || crypto.randomUUID(),
-    season: Number(fixture.season || 2026),
+    season: Number(fixture.season),
     round: Number(fixture.round),
-    home: String(fixture.home || "").trim(),
-    away: String(fixture.away || "").trim(),
+    home: String(fixture.home).trim(),
+    away: String(fixture.away).trim(),
     date: fixture.date || ""
   }));
 
-  const invalid = normalized.some(fixture =>
-    !fixture.season ||
-    !fixture.round ||
-    !fixture.home ||
-    !fixture.away
-  );
+  saveFixtures([...hiddenFixtures, ...importedFixtures]);
 
-  if (invalid) {
-    throw new Error(
-      "Una o più partite contengono dati mancanti o non validi"
-    );
-  }
-
-  saveFixtures(normalized);
-
-  return normalized;
+  return importedFixtures.length;
 }
