@@ -31,7 +31,7 @@ import {
 } from "./ui.js";
 
 // --------------------------------------------------
-// DATI
+// DATI E SALVATAGGIO
 // --------------------------------------------------
 
 const data = loadData() || {};
@@ -49,6 +49,14 @@ function createId() {
     : `${Date.now()}-${Math.random().toString(16).slice(2)}`;
 }
 
+function localDate() {
+  const date = new Date();
+  const offset = date.getTimezoneOffset();
+  return new Date(date.getTime() - offset * 60000)
+    .toISOString()
+    .slice(0, 10);
+}
+
 function saveAll() {
   data.bets = bets;
   saveData(data);
@@ -56,9 +64,107 @@ function saveAll() {
 
 function refresh() {
   renderDashboard(bets);
-  renderBets(filterBets(bets));
+
+  $("betsList").innerHTML = renderBets(
+    filterBets(
+      bets,
+      $("typeFilter").value,
+      $("statusFilter").value,
+      $("searchInput").value
+    )
+  );
+
   renderStats(bets);
   refreshFixtures();
+}
+
+function refreshBetList() {
+  $("betsList").innerHTML = renderBets(
+    filterBets(
+      bets,
+      $("typeFilter").value,
+      $("statusFilter").value,
+      $("searchInput").value
+    )
+  );
+}
+
+// --------------------------------------------------
+// RICONOSCIMENTO AUTOMATICO MERCATI
+// --------------------------------------------------
+
+function detectMarket(value) {
+  const pick = String(value || "").trim().toLowerCase();
+
+  if (!pick) return "Altro";
+
+  // Cluster risultati
+  if (
+    /\bcluster\b/.test(pick) ||
+    /\bcluster\s*risultati\b/.test(pick)
+  ) {
+    return "Cluster risultati";
+  }
+
+  // Combo
+  if (/[+&]/.test(pick)) {
+    return "Combo";
+  }
+
+  // Multigol
+  if (
+    /\bmultigol\b/.test(pick) ||
+    /\bmg\s*\d/.test(pick)
+  ) {
+    return "Multigol";
+  }
+
+  // Goal / No Goal
+  if (
+    /\bgoal\b/.test(pick) ||
+    /\bno\s*goal\b/.test(pick) ||
+    /\bgg\b/.test(pick) ||
+    /\bng\b/.test(pick)
+  ) {
+    return "Goal / No Goal";
+  }
+
+  // Over / Under
+  if (
+    /\bover\b/.test(pick) ||
+    /\bunder\b/.test(pick) ||
+    /^\s*[ou]\s*\d/.test(pick)
+  ) {
+    return "Over / Under";
+  }
+
+  // Doppia chance
+  if (/^(1x|x2|12)$/.test(pick)) {
+    return "Doppia chance";
+  }
+
+  // Esito 1X2
+  if (/^[1x2]$/.test(pick)) {
+    return "Esito 1X2";
+  }
+
+  // Risultato esatto
+  if (/^\d+\s*[-:]\s*\d+$/.test(pick)) {
+    return "Risultato esatto";
+  }
+
+  // Altri mercati
+  if (/\bcorner\b/.test(pick)) return "Corner";
+  if (/\bcartellini?\b/.test(pick)) return "Cartellini";
+
+  if (
+    /\btiri?\b/.test(pick) &&
+    /\bporta\b/.test(pick)
+  ) {
+    return "Tiri in porta";
+  }
+
+  return "Altro";
 }
 
 // --------------------------------------------------
@@ -77,6 +183,7 @@ function updateCalculations() {
 
   if (!editingPotential) {
     const potential = calcPotential(stake, odds);
+
     $("betPotential").value = potential
       ? potential.toFixed(2)
       : "";
@@ -101,7 +208,7 @@ function refreshFixtures() {
     currentRound()
   );
 
-  renderFixtures(fixtures);
+  $("fixturesList").innerHTML = renderFixtures(fixtures);
 
   return fixtures;
 }
@@ -114,12 +221,11 @@ function refreshPicker() {
     round
   );
 
-  renderFixturePicker(fixtures);
+  $("fixturePicker").innerHTML = renderFixturePicker(fixtures);
 }
 
 $("loadFixturesBtn").addEventListener("click", () => {
   const fixtures = refreshFixtures();
-
   toast(`${fixtures.length} partite trovate`);
 });
 
@@ -135,7 +241,6 @@ $("addFixtureBtn").addEventListener("click", () => {
   $("fixtureDialog").showModal();
 });
 
-// Aggiunta manuale partita
 $("fixtureForm").addEventListener("submit", event => {
   event.preventDefault();
 
@@ -147,47 +252,53 @@ $("fixtureForm").addEventListener("submit", event => {
     return;
   }
 
-  addFixture({
-    season: $("fixtureSeason").value,
-    round: $("fixtureRound").value,
-    home,
-    away,
-    date: $("fixtureDate").value
-  });
+  try {
+    addFixture({
+      season: $("fixtureSeason").value,
+      round: $("fixtureRound").value,
+      home,
+      away,
+      date: $("fixtureDate").value
+    });
 
-  $("fixtureDialog").close();
+    $("fixtureDialog").close();
+    refreshFixtures();
+    refreshPicker();
 
-  refreshFixtures();
-  toast("Partita aggiunta");
+    toast("Partita aggiunta");
+  } catch (error) {
+    toast(error.message || "Errore nell'aggiunta della partita");
+  }
 });
 
-// Nascondi partita
 $("fixturesList").addEventListener("click", event => {
   const button = event.target.closest("[data-remove-fixture]");
 
   if (!button) return;
 
-  const id = button.dataset.removeFixture;
-
   if (!confirm("Vuoi nascondere questa partita dal calendario?")) {
     return;
   }
 
-  removeFixture(id);
+  removeFixture(button.dataset.removeFixture);
   refreshFixtures();
+  refreshPicker();
 
   toast("Partita nascosta");
 });
 
 // --------------------------------------------------
-// SCHEDINE
+// APERTURA SCHEDINA
 // --------------------------------------------------
 
 function openBet(bet = null) {
   $("betForm").reset();
 
   events = bet
-    ? (bet.events || []).map(item => ({ ...item }))
+    ? (bet.events || []).map(item => ({
+        ...item,
+        result: item.result || "pending"
+      }))
     : [];
 
   editingOdds = false;
@@ -199,12 +310,9 @@ function openBet(bet = null) {
     ? "Modifica schedina"
     : "Nuova schedina";
 
-  $("betRound").value = bet?.round ?? currentRound();
-
+  $("betRound").value = bet?.round ?? currentRound() || "";
   $("betType").value = bet?.type || "Easy";
-
-  $("betDate").value = bet?.date || new Date()
-    .toLocaleDateString("en-CA");
+  $("betDate").value = bet?.date || localDate();
 
   $("betStake").value = bet?.stake ?? (
     $("betType").value === "Hard" ? "2.50" : "7.50"
@@ -215,18 +323,29 @@ function openBet(bet = null) {
   $("betStatus").value = bet?.status || "pending";
   $("betActual").value = bet?.actual ?? 0;
 
-  renderEvents(events);
+  $("eventPick").value = "";
+  $("eventOdds").value = "";
+  $("eventMarket").value = "Esito 1X2";
+
+  renderEventList();
   refreshPicker();
   updateCalculations();
 
   $("betDialog").showModal();
 }
 
+function renderEventList() {
+  $("eventsEditor").innerHTML = renderEvents(events);
+}
+
 $("newBetBtn").addEventListener("click", () => {
   openBet();
 });
 
-// Tipo di schedina
+// --------------------------------------------------
+// MODIFICA DATI SCHEDINA
+// --------------------------------------------------
+
 $("betType").addEventListener("change", () => {
   $("betStake").value =
     $("betType").value === "Hard" ? "2.50" : "7.50";
@@ -235,63 +354,141 @@ $("betType").addEventListener("change", () => {
   updateCalculations();
 });
 
-// Giornata della schedina
 $("betRound").addEventListener("change", refreshPicker);
 
-// Puntata
 $("betStake").addEventListener("input", () => {
   editingPotential = false;
   updateCalculations();
 });
 
-// Modifica manuale quota
 $("betOdds").addEventListener("input", () => {
   editingOdds = true;
   editingPotential = false;
   updateCalculations();
 });
 
-// Modifica manuale vincita potenziale
 $("betPotential").addEventListener("input", () => {
   editingPotential = true;
 });
 
-// Aggiunta evento vuoto
+// --------------------------------------------------
+// RICONOSCIMENTO MERCATO NELL'INSERIMENTO RAPIDO
+// --------------------------------------------------
+
+$("eventPick").addEventListener("input", () => {
+  $("eventMarket").value = detectMarket($("eventPick").value);
+});
+
+// --------------------------------------------------
+// AGGIUNTA RAPIDA EVENTO
+// --------------------------------------------------
+
 $("addEventBtn").addEventListener("click", () => {
+  const fixtureId = $("fixturePicker").value;
+  const pick = $("eventPick").value.trim();
+  const odds = Number($("eventOdds").value);
+
+  if (!fixtureId) {
+    toast("Seleziona prima una partita");
+    return;
+  }
+
+  if (!pick) {
+    toast("Inserisci la giocata");
+    return;
+  }
+
+  if (!Number.isFinite(odds) || odds <= 0) {
+    toast("Inserisci una quota valida");
+    return;
+  }
+
+  const fixture = allFixtures().find(
+    item => String(item.id) === String(fixtureId)
+  );
+
+  if (!fixture) {
+    toast("Partita non trovata");
+    return;
+  }
+
   events.push({
-    home: "",
-    away: "",
-    market: "",
-    pick: "",
-    odds: ""
+    home: fixture.home,
+    away: fixture.away,
+    market: $("eventMarket").value,
+    pick,
+    odds,
+    result: "pending"
   });
 
   editingOdds = false;
   editingPotential = false;
 
-  renderEvents(events);
+  renderEventList();
   updateCalculations();
+
+  // Prepara l'inserimento della partita successiva
+  $("fixturePicker").value = "";
+  $("eventPick").value = "";
+  $("eventOdds").value = "";
+  $("eventMarket").value = "Esito 1X2";
+
+  toast("Evento aggiunto alla schedina");
 });
 
-// Modifica o rimozione eventi
+// --------------------------------------------------
+// MODIFICA SINGOLI EVENTI
+// --------------------------------------------------
+
 $("eventsEditor").addEventListener("input", event => {
   const input = event.target.closest("[data-field]");
 
   if (!input) return;
 
-  const row = input.closest("[data-event-index]");
-  const index = Number(row.dataset.eventIndex);
+  const index = Number(input.dataset.index);
+  const field = input.dataset.field;
 
   if (!events[index]) return;
 
+  events[index][field] = input.value;
+
+  // Se cambia la giocata, riconosci nuovamente il mercato
+  if (field === "pick") {
+    events[index].market = detectMarket(input.value);
+
+    const marketSelect = $("eventsEditor").querySelector(
+      `[data-field="market"][data-index="${index}"]`
+    );
+
+    if (marketSelect) {
+      marketSelect.value = events[index].market;
+    }
+  }
+
+  if (field === "odds") {
+    editingOdds = false;
+    editingPotential = false;
+    updateCalculations();
+  }
+});
+
+$("eventsEditor").addEventListener("change", event => {
+  const input = event.target.closest("[data-field]");
+
+  if (!input) return;
+
+  const index = Number(input.dataset.index);
   const field = input.dataset.field;
+
+  if (!events[index]) return;
 
   events[index][field] = input.value;
 
-  editingOdds = false;
-  editingPotential = false;
-
-  updateCalculations();
+  if (field === "odds") {
+    editingOdds = false;
+    editingPotential = false;
+    updateCalculations();
+  }
 });
 
 $("eventsEditor").addEventListener("click", event => {
@@ -306,61 +503,21 @@ $("eventsEditor").addEventListener("click", event => {
   editingOdds = false;
   editingPotential = false;
 
-  renderEvents(events);
-  updateCalculations();
-});
-
-// Inserimento partita dal calendario
-$("addSelectedFixture").addEventListener("click", () => {
-  const id = $("fixturePicker").value;
-
-  if (!id) {
-    toast("Seleziona prima una partita");
-    return;
-  }
-
-  const fixture = allFixtures().find(item => item.id === id);
-
-  if (!fixture) {
-    toast("Partita non trovata");
-    return;
-  }
-
-  const alreadyAdded = events.some(event =>
-    event.home === fixture.home &&
-    event.away === fixture.away
-  );
-
-  if (alreadyAdded) {
-    toast("Partita già presente");
-    return;
-  }
-
-  events.push({
-    home: fixture.home,
-    away: fixture.away,
-    market: "",
-    pick: "",
-    odds: ""
-  });
-
-  editingOdds = false;
-  editingPotential = false;
-
-  renderEvents(events);
+  renderEventList();
   updateCalculations();
 
-  toast("Partita aggiunta alla schedina");
+  toast("Evento rimosso");
 });
 
-// Salvataggio schedina
+// --------------------------------------------------
+// SALVATAGGIO SCHEDINA
+// --------------------------------------------------
+
 $("betForm").addEventListener("submit", event => {
   event.preventDefault();
 
   const id = $("betId").value || createId();
-
   const stake = Number($("betStake").value);
-
   const odds = Number($("betOdds").value) || calcOdds(events);
 
   const potentialInput = $("betPotential").value;
@@ -368,6 +525,8 @@ $("betForm").addEventListener("submit", event => {
   const potential = potentialInput.trim() !== ""
     ? Number(potentialInput)
     : calcPotential(stake, odds);
+
+  const actual = Number($("betActual").value) || 0;
 
   if (!Number.isFinite(stake) || stake <= 0) {
     toast("Inserisci una puntata valida");
@@ -384,6 +543,11 @@ $("betForm").addEventListener("submit", event => {
     return;
   }
 
+  if (!Number.isFinite(actual) || actual < 0) {
+    toast("Incasso effettivo non valido");
+    return;
+  }
+
   const bet = {
     id,
     round: Number($("betRound").value) || null,
@@ -393,8 +557,11 @@ $("betForm").addEventListener("submit", event => {
     odds,
     potential,
     status: $("betStatus").value,
-    actual: Number($("betActual").value) || 0,
-    events: events.map(item => ({ ...item }))
+    actual,
+    events: events.map(item => ({
+      ...item,
+      result: item.result || "pending"
+    }))
   };
 
   const index = bets.findIndex(item => item.id === id);
@@ -410,21 +577,54 @@ $("betForm").addEventListener("submit", event => {
   $("betDialog").close();
 
   refresh();
-
   toast("Schedina salvata");
 });
 
-// Modifica schedina
+// --------------------------------------------------
+// MODIFICA, DUPLICAZIONE ED ELIMINAZIONE
+// --------------------------------------------------
+
 $("betsList").addEventListener("click", event => {
   const editButton = event.target.closest("[data-edit-bet]");
+  const copyButton = event.target.closest("[data-copy-bet]");
   const deleteButton = event.target.closest("[data-delete-bet]");
 
   if (editButton) {
-    const bet = bets.find(item =>
-      item.id === editButton.dataset.editBet
+    const bet = bets.find(
+      item => item.id === editButton.dataset.editBet
     );
 
     if (bet) openBet(bet);
+    return;
+  }
+
+  if (copyButton) {
+    const original = bets.find(
+      item => item.id === copyButton.dataset.copyBet
+    );
+
+    if (!original) return;
+
+    if (!confirm("Vuoi creare una copia di questa schedina?")) {
+      return;
+    }
+
+    const copy = {
+      ...original,
+      id: createId(),
+      status: "pending",
+      actual: 0,
+      events: (original.events || []).map(item => ({
+        ...item,
+        result: "pending"
+      }))
+    };
+
+    bets.push(copy);
+    saveAll();
+    refresh();
+
+    toast("Schedina duplicata");
     return;
   }
 
@@ -468,17 +668,9 @@ $("cancelFixtureBtn").addEventListener("click", () => {
 // FILTRI
 // --------------------------------------------------
 
-$("typeFilter").addEventListener("change", () => {
-  renderBets(filterBets(bets));
-});
-
-$("statusFilter").addEventListener("change", () => {
-  renderBets(filterBets(bets));
-});
-
-$("searchInput").addEventListener("input", () => {
-  renderBets(filterBets(bets));
-});
+$("typeFilter").addEventListener("change", refreshBetList);
+$("statusFilter").addEventListener("change", refreshBetList);
+$("searchInput").addEventListener("input", refreshBetList);
 
 // --------------------------------------------------
 // NAVIGAZIONE
@@ -488,11 +680,11 @@ document.querySelectorAll("[data-tab]").forEach(button => {
   button.addEventListener("click", () => {
     const tab = button.dataset.tab;
 
-    document.querySelectorAll(".tab").forEach(item => {
+    document.querySelectorAll("[data-tab]").forEach(item => {
       item.classList.toggle("active", item === button);
     });
 
-    document.querySelectorAll(".panel").forEach(panel => {
+    document.querySelectorAll(".tab-panel").forEach(panel => {
       panel.classList.toggle(
         "active",
         panel.id === `${tab}Panel`
@@ -511,16 +703,13 @@ document.querySelectorAll("[data-tab]").forEach(button => {
 
 $("exportBtn").addEventListener("click", () => {
   const backup = {
-    version: 2,
+    version: 3,
     exportedAt: new Date().toISOString(),
     bets,
     fixtures: loadFixtures() || []
   };
 
-  downloadJSON(
-    "betting-lab-backup.json",
-    backup
-  );
+  downloadJSON("betting-lab-backup.json", backup);
 
   toast("Backup esportato");
 });
@@ -555,11 +744,17 @@ $("importFile").addEventListener("change", async event => {
     bets = importedBets.map(bet => ({
       ...bet,
       id: bet.id || createId(),
-      events: Array.isArray(bet.events) ? bet.events : []
+      status: bet.status || "pending",
+      actual: Number(bet.actual) || 0,
+      events: Array.isArray(bet.events)
+        ? bet.events.map(item => ({
+            ...item,
+            result: item.result || "pending"
+          }))
+        : []
     }));
 
     saveAll();
-
     refresh();
 
     toast("Backup importato correttamente");
