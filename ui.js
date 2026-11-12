@@ -133,17 +133,11 @@ export function renderBets(bets) {
         </div>
 
         <div class="bet-actions">
-          <button
-            type="button"
-            data-edit-bet="${betId}"
-          >
+          <button type="button" data-edit-bet="${betId}">
             Modifica
           </button>
 
-          <button
-            type="button"
-            data-delete-bet="${betId}"
-          >
+          <button type="button" data-delete-bet="${betId}">
             Elimina
           </button>
         </div>
@@ -190,7 +184,6 @@ function typeBlock(name, data) {
   return `
     <div class="type-stat-block">
       <h4>${name}</h4>
-
       <p>Schedine: <strong>${data.count}</strong></p>
       <p>Puntato: <strong>${money(data.stake)}</strong></p>
       <p>Incassato: <strong>${money(data.returned)}</strong></p>
@@ -270,6 +263,21 @@ export function renderFixturePicker(fixtures) {
   `;
 }
 
+// MERCATI DISPONIBILI
+const marketOptions = [
+  "Esito 1X2",
+  "Doppia chance",
+  "Goal / No Goal",
+  "Over / Under",
+  "Multigol",
+  "Risultato esatto",
+  "Corner",
+  "Cartellini",
+  "Tiri in porta",
+  "Combo",
+  "Altro"
+];
+
 // EDITOR EVENTI SCHEDINA
 export function renderEvents(events) {
   const container = $("eventsEditor");
@@ -281,56 +289,102 @@ export function renderEvents(events) {
     return;
   }
 
-  container.innerHTML = events.map((event, index) => `
-    <div class="event-row" data-event-index="${index}">
+  container.innerHTML = events.map((event, index) => {
+    const currentMarket = event.market || "";
 
-      <input
-        type="text"
-        data-field="home"
-        placeholder="Squadra casa"
-        value="${escapeHTML(event.home || event.match || "")}"
-      >
+    const isCustomMarket =
+      currentMarket && !marketOptions.includes(currentMarket);
 
-      <input
-        type="text"
-        data-field="away"
-        placeholder="Squadra ospite"
-        value="${escapeHTML(event.away || "")}"
-      >
+    const marketOptionsHTML = `
+      <option value="">Seleziona mercato</option>
 
-      <input
-        type="text"
-        data-field="market"
-        placeholder="Mercato"
-        value="${escapeHTML(event.market || "")}"
-      >
+      ${isCustomMarket ? `
+        <option value="${escapeHTML(currentMarket)}" selected>
+          ${escapeHTML(currentMarket)}
+        </option>
+      ` : ""}
 
-      <input
-        type="text"
-        data-field="pick"
-        placeholder="Pronostico"
-        value="${escapeHTML(event.pick || "")}"
-      >
+      ${marketOptions.map(market => `
+        <option
+          value="${escapeHTML(market)}"
+          ${currentMarket === market ? "selected" : ""}
+        >
+          ${escapeHTML(market)}
+        </option>
+      `).join("")}
+    `;
 
-      <input
-        type="number"
-        data-field="odds"
-        min="1"
-        step="0.01"
-        placeholder="Quota"
-        value="${event.odds ? escapeHTML(event.odds) : ""}"
-      >
+    return `
+      <div class="event-row" data-event-index="${index}">
 
-      <button
-        type="button"
-        data-remove-event="${index}"
-        aria-label="Rimuovi selezione"
-      >
-        ×
-      </button>
+        <div class="event-teams">
+          <label>
+            Squadra casa
+            <input
+              type="text"
+              data-field="home"
+              placeholder="Es. Inter"
+              value="${escapeHTML(event.home || event.match || "")}"
+            >
+          </label>
 
-    </div>
-  `).join("");
+          <label>
+            Squadra ospite
+            <input
+              type="text"
+              data-field="away"
+              placeholder="Es. Milan"
+              value="${escapeHTML(event.away || "")}"
+            >
+          </label>
+        </div>
+
+        <div class="event-details">
+          <label>
+            Mercato
+            <select data-field="market">
+              ${marketOptionsHTML}
+            </select>
+          </label>
+
+          <label>
+            Pronostico
+            <input
+              type="text"
+              data-field="pick"
+              placeholder="Es. 1X, Over 1.5..."
+              value="${escapeHTML(event.pick || "")}"
+            >
+          </label>
+        </div>
+
+        <div class="event-footer">
+          <label>
+            Quota
+            <input
+              type="number"
+              data-field="odds"
+              min="1"
+              step="0.01"
+              inputmode="decimal"
+              placeholder="1.50"
+              value="${event.odds ? escapeHTML(event.odds) : ""}"
+            >
+          </label>
+
+          <button
+            type="button"
+            class="remove-event-btn"
+            data-remove-event="${index}"
+            aria-label="Rimuovi selezione"
+          >
+            Rimuovi
+          </button>
+        </div>
+
+      </div>
+    `;
+  }).join("");
 }
 
 // FILTRI SCHEDINE
