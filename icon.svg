@@ -1,13 +1,54 @@
+
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
-  <rect width="512" height="512" rx="110" fill="#101827"/>
-  <rect x="42" y="42" width="428" height="428" rx="88" fill="#35d07f"/>
-  <path d="M128 350V162h132c62 0 96 30 96 77 0 27-14 47-38 59 32 10 50 33 50 65 0 53-40 87-107 87H128z"
-        fill="#101827"/>
-  <path d="M190 213v57h67c22 0 34-10 34-29s-12-28-34-28h-67z"
-        fill="#35d07f"/>
-  <path d="M190 316v70h72c26 0 40-12 40-35s-14-35-40-35h-72z"
-        fill="#35d07f"/>
-  <circle cx="390" cy="122" r="42" fill="#101827"/>
-  <path d="M371 122l13 13 26-29" fill="none" stroke="#35d07f"
-        stroke-width="12" stroke-linecap="round" stroke-linejoin="round"/>
+  <defs>
+    <linearGradient id="electric" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#00aaff"/>
+      <stop offset="55%" stop-color="#00e5ef"/>
+      <stop offset="100%" stop-color="#00ffc6"/>
+    </linearGradient>
+  </defs>
+
+  <rect width="512" height="512" fill="#000000"/>
+
+  <g fill="none" stroke="url(#electric)" stroke-linejoin="round">
+    <path d="M256 22 462 91 462 300 256 480 50 300 50 91Z" stroke-width="8"/>
+    <path d="M256 39 445 102 445 289 256 458 67 289 67 102Z" stroke-width="3"/>
+    <path d="M77 145 190 105 190 126 77 166Z" stroke-width="5"/>
+    <path d="M77 180 176 145 176 165 77 200Z" stroke-width="5"/>
+    <path d="M77 215 168 183 168 202 77 235Z" stroke-width="5"/>
+    <path d="M339 210 375 210 375 275 339 275Z" stroke-width="5"/>
+    <path d="M390 180 426 180 426 275 390 275Z" stroke-width="5"/>
+    <path d="M350 170 433 92 430 132" stroke-width="8"/>
+    <path d="M350 170 430 92" stroke-width="8"/>
+    <circle cx="256" cy="145" r="91" stroke-width="8"/>
+    <circle cx="256" cy="145" r="77" stroke-width="3"/>
+  </g>
+
+  <g fill="url(#electric)" stroke="#000" stroke-width="5" stroke-linejoin="round">
+    <path d="M256 111 278 127 269 153 243 153 234 127Z"/>
+    <path d="M256 54 281 70 278 99 256 111 234 99 231 70Z"/>
+    <path d="M190 104 218 91 234 127 214 151 185 143Z"/>
+    <path d="M322 104 294 91 278 127 298 151 327 143Z"/>
+    <path d="M214 151 243 153 256 180 239 204 210 193Z"/>
+    <path d="M298 151 269 153 256 180 273 204 302 193Z"/>
+    <path d="M239 204 256 180 273 204 265 231 247 231Z"/>
+  </g>
+
+  <path d="M36 292 476 292 458 375 256 490 54 375Z"
+        fill="#000" stroke="url(#electric)" stroke-width="9"/>
+  <path d="M51 305 461 305 447 365 256 472 65 365Z"
+        fill="none" stroke="url(#electric)" stroke-width="3"/>
+
+  <g fill="url(#electric)" font-family="Arial Black, Impact, sans-serif"
+     font-weight="900" text-anchor="middle">
+    <text x="256" y="354" font-size="61" letter-spacing="-2">BETTING</text>
+    <text x="256" y="412" font-size="55" letter-spacing="5">LAB</text>
+  </g>
+
+  <g stroke="url(#electric)" stroke-width="6" fill="none">
+    <path d="M83 383H174 M338 383H429"/>
+    <path d="M105 399H174 M338 399H407"/>
+  </g>
+  <path d="M256 430 264 446 282 448 269 460 273 478 256 469 239 478 243 460 230 448 248 446Z"
+        fill="url(#electric)"/>
 </svg>
