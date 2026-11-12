@@ -52,6 +52,7 @@ function createId() {
 function localDate() {
   const date = new Date();
   const offset = date.getTimezoneOffset();
+
   return new Date(date.getTime() - offset * 60000)
     .toISOString()
     .slice(0, 10);
@@ -98,20 +99,14 @@ function detectMarket(value) {
 
   if (!pick) return "Altro";
 
-  // Cluster risultati
-  if (
-    /\bcluster\b/.test(pick) ||
-    /\bcluster\s*risultati\b/.test(pick)
-  ) {
+  if (/\bcluster\b/.test(pick)) {
     return "Cluster risultati";
   }
 
-  // Combo
   if (/[+&]/.test(pick)) {
     return "Combo";
   }
 
-  // Multigol
   if (
     /\bmultigol\b/.test(pick) ||
     /\bmg\s*\d/.test(pick)
@@ -119,7 +114,6 @@ function detectMarket(value) {
     return "Multigol";
   }
 
-  // Goal / No Goal
   if (
     /\bgoal\b/.test(pick) ||
     /\bno\s*goal\b/.test(pick) ||
@@ -129,7 +123,6 @@ function detectMarket(value) {
     return "Goal / No Goal";
   }
 
-  // Over / Under
   if (
     /\bover\b/.test(pick) ||
     /\bunder\b/.test(pick) ||
@@ -138,22 +131,18 @@ function detectMarket(value) {
     return "Over / Under";
   }
 
-  // Doppia chance
   if (/^(1x|x2|12)$/.test(pick)) {
     return "Doppia chance";
   }
 
-  // Esito 1X2
   if (/^[1x2]$/.test(pick)) {
     return "Esito 1X2";
   }
 
-  // Risultato esatto
   if (/^\d+\s*[-:]\s*\d+$/.test(pick)) {
     return "Risultato esatto";
   }
 
-  // Altri mercati
   if (/\bcorner\b/.test(pick)) return "Corner";
   if (/\bcartellini?\b/.test(pick)) return "Cartellini";
 
@@ -310,7 +299,9 @@ function openBet(bet = null) {
     ? "Modifica schedina"
     : "Nuova schedina";
 
-  $("betRound").value = bet?.round ?? currentRound() || "";
+  // CORRETTO: parentesi attorno a currentRound() || ""
+  $("betRound").value = bet?.round ?? (currentRound() || "");
+
   $("betType").value = bet?.type || "Easy";
   $("betDate").value = bet?.date || localDate();
 
@@ -372,7 +363,7 @@ $("betPotential").addEventListener("input", () => {
 });
 
 // --------------------------------------------------
-// RICONOSCIMENTO MERCATO NELL'INSERIMENTO RAPIDO
+// RICONOSCIMENTO AUTOMATICO MERCATO
 // --------------------------------------------------
 
 $("eventPick").addEventListener("input", () => {
@@ -427,7 +418,6 @@ $("addEventBtn").addEventListener("click", () => {
   renderEventList();
   updateCalculations();
 
-  // Prepara l'inserimento della partita successiva
   $("fixturePicker").value = "";
   $("eventPick").value = "";
   $("eventOdds").value = "";
@@ -452,7 +442,6 @@ $("eventsEditor").addEventListener("input", event => {
 
   events[index][field] = input.value;
 
-  // Se cambia la giocata, riconosci nuovamente il mercato
   if (field === "pick") {
     events[index].market = detectMarket(input.value);
 
