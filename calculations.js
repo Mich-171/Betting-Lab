@@ -1,8 +1,4 @@
 
-// ================================
-// FORMATO VALUTE
-// ================================
-
 export function money(value) {
   return new Intl.NumberFormat("it-IT", {
     style: "currency",
@@ -10,137 +6,142 @@ export function money(value) {
   }).format(Number(value) || 0);
 }
 
-// ================================
-// ARROTONDAMENTO
-// ================================
-
 export function round2(value) {
   return Math.round((Number(value) || 0) * 100) / 100;
 }
 
-// ================================
-// CALCOLO QUOTA TOTALE
-// ================================
-
 export function calcOdds(events) {
-  if (!Array.isArray(events) || events.length === 0) {
-    return 0;
-  }
+  if (!Array.isArray(events) || events.length === 0) return 0;
 
-  return round2(
-    events.reduce((total, event) => {
-      const odds = Number(event.odds);
-
-      return total * (odds > 0 ? odds : 1);
-    }, 1)
-  );
+  return round2(events.reduce((total, event) => {
+    const odds = Number(event.odds);
+    return total * (odds > 0 ? odds : 1);
+  }, 1));
 }
-
-// ================================
-// CALCOLO VINCITA POTENZIALE
-// ================================
 
 export function calcPotential(stake, odds) {
-  return round2(
-    (Number(stake) || 0) * (Number(odds) || 0)
-  );
+  return round2((Number(stake) || 0) * (Number(odds) || 0));
 }
-
-// ================================
-// CALCOLO TOTALI
-// ================================
 
 export function totals(bets) {
   const stake = bets.reduce(
-    (total, bet) => total + (Number(bet.stake) || 0),
-    0
+    (sum, bet) => sum + (Number(bet.stake) || 0), 0
   );
 
   const returned = bets.reduce(
-    (total, bet) => total + (Number(bet.actual) || 0),
-    0
+    (sum, bet) => sum + (Number(bet.actual) || 0), 0
   );
 
   const profit = returned - stake;
-
-  const roi = stake > 0
-    ? (profit / stake) * 100
-    : 0;
 
   return {
     stake: round2(stake),
     returned: round2(returned),
     profit: round2(profit),
-    roi: round2(roi)
+    roi: stake > 0 ? round2(profit / stake * 100) : 0
   };
 }
-
-// ================================
-// STATISTICHE EASY / HARD
-// ================================
 
 export function byType(bets, type) {
-  const filtered = bets.filter(
-    bet => bet.type === type
-  );
-
-  const result = totals(filtered);
+  const filtered = bets.filter(bet => bet.type === type);
 
   return {
-    ...result,
-
+    ...totals(filtered),
     count: filtered.length,
-
-    won: filtered.filter(
-      bet => bet.status === "won"
-    ).length,
-
-    lost: filtered.filter(
-      bet => bet.status === "lost"
-    ).length,
-
+    won: filtered.filter(bet => bet.status === "won").length,
+    lost: filtered.filter(bet => bet.status === "lost").length,
     pending: filtered.filter(
-      bet => bet.status === "pending"
+      bet => !bet.status || bet.status === "pending"
     ).length,
-
-    void: filtered.filter(
-      bet => bet.status === "void"
-    ).length
+    void: filtered.filter(bet => bet.status === "void").length
   };
 }
-
-// ================================
-// STATISTICHE PER ESITO
-// ================================
 
 export function outcomeStats(bets) {
   return {
     won: bets.filter(bet => bet.status === "won").length,
     lost: bets.filter(bet => bet.status === "lost").length,
-    pending: bets.filter(bet => bet.status === "pending").length,
+    pending: bets.filter(
+      bet => !bet.status || bet.status === "pending"
+    ).length,
     void: bets.filter(bet => bet.status === "void").length
   };
 }
 
-// ================================
-// STATISTICHE PER MERCATO
-// ================================
+// Statistiche di tutti gli eventi
+export function eventStats(bets) {
+  const result = {
+    total: 0,
+    won: 0,
+    lost: 0,
+    pending: 0,
+    void: 0,
+    winRate: 0,
+    lossRate: 0
+  };
 
+  bets.forEach(bet => {
+    (bet.events || []).forEach(event => {
+      result.total++;
+
+      const status = event.result || "pending";
+
+      if (status === "won") result.won++;
+      else if (status === "lost") result.lost++;
+      else if (status === "void") result.void++;
+      else result.pending++;
+    });
+  });
+
+  const evaluated = result.won + result.lost;
+
+  if (evaluated > 0) {
+    result.winRate = round2(result.won / evaluated * 100);
+    result.lossRate = round2(result.lost / evaluated * 100);
+  }
+
+  return result;
+}
+
+// Statistiche suddivise per mercato
 export function marketStats(bets) {
   const markets = {};
 
   bets.forEach(bet => {
     (bet.events || []).forEach(event => {
-      const market = event.market || "Altro";
+      const name = event.market || "Altro";
 
-      if (!markets[market]) {
-        markets[market] = {
-          count: 0
+      if (!markets[name]) {
+        markets[name] = {
+          count: 0,
+          won: 0,
+          lost: 0,
+          pending: 0,
+          void: 0,
+          winRate: 0,
+          lossRate: 0
         };
       }
 
-      markets[market].count++;
+      const market = markets[name];
+      market.count++;
+
+      const status = event.result || "pending";
+
+      if (status === "won") market.won++;
+      else if (status === "lost") market.lost++;
+      else if (status === "void") market.void++;
+      else market.pending++;
     });
+  });
+
+  Object.values(markets).forEach(market => {
+    const evaluated = market.won + market.lost;
+
+    if (evaluated > 0) {
+      market.winRate = round2(market.won / evaluated * 100);
+      market.lossRate = round2(market.lost / evaluated * 100);
+    }
   });
 
   return markets;
