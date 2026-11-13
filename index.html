@@ -241,21 +241,6 @@
           Vincita potenziale (€)
           <input id="betPotential" type="number" min="0" step="0.01" value="0">
         </label>
-
-        <label>
-          Stato schedina
-          <select id="betStatus">
-            <option value="pending">In attesa</option>
-            <option value="won">Vinta</option>
-            <option value="lost">Persa</option>
-            <option value="void">Annullata</option>
-          </select>
-        </label>
-
-        <label>
-          Incasso effettivo (€)
-          <input id="betActual" type="number" min="0" step="0.01" value="0">
-        </label>
       </div>
 
       <div class="event-entry-section">
@@ -282,6 +267,7 @@
             <select id="eventMarket">
               <option value="Esito 1X2">Esito 1X2</option>
               <option value="Doppia chance">Doppia chance</option>
+              <option value="Chance Mix">Chance Mix</option>
               <option value="Goal / No Goal">Goal / No Goal</option>
               <option value="Over / Under">Over / Under</option>
               <option value="Multigol">Multigol</option>
@@ -309,7 +295,7 @@
       <div class="events-section">
         <h3>Eventi inseriti</h3>
         <p class="section-description">
-          Puoi modificare il mercato e indicare l'esito di ogni singolo evento.
+          Indica l'esito di ogni singolo evento: la schedina si aggiornerà automaticamente.
         </p>
         <div id="eventsEditor" class="events-editor"></div>
       </div>
