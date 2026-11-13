@@ -15,7 +15,8 @@ import {
 
 import {
   calcOdds,
-  calcPotential
+  calcPotential,
+  getBetStatus
 } from "./calculations.js";
 
 import {
@@ -98,6 +99,15 @@ function detectMarket(value) {
   const pick = String(value || "").trim().toLowerCase();
 
   if (!pick) return "Altro";
+
+  // Chance Mix: es. X o Goal, 1 o No Goal, 2 oppure GG.
+  if (
+    /\bchance\s*mix\b/.test(pick) ||
+    /(?:[1x2])\s*(?:o|oppure)\s*(?:no\s*goal|goal|gg|ng)\b/.test(pick) ||
+    /(?:no\s*goal|goal|gg|ng)\s*(?:o|oppure)\s*[1x2]\b/.test(pick)
+  ) {
+    return "Chance Mix";
+  }
 
   if (/\bcluster\b/.test(pick)) {
     return "Cluster risultati";
@@ -225,7 +235,7 @@ $("addFixtureBtn").addEventListener("click", () => {
   $("fixtureForm").reset();
 
   $("fixtureSeason").value = currentSeason();
-  $("fixtureRound").value = currentRound();
+  $("fixtureRound").value = currentRound() || "";
 
   $("fixtureDialog").showModal();
 });
@@ -290,18 +300,13 @@ function openBet(bet = null) {
       }))
     : [];
 
-  editingOdds = false;
-  editingPotential = false;
-
   $("betId").value = bet?.id || "";
 
   $("betDialogTitle").textContent = bet
     ? "Modifica schedina"
     : "Nuova schedina";
 
-  // CORRETTO: parentesi attorno a currentRound() || ""
   $("betRound").value = bet?.round ?? (currentRound() || "");
-
   $("betType").value = bet?.type || "Easy";
   $("betDate").value = bet?.date || localDate();
 
@@ -311,12 +316,33 @@ function openBet(bet = null) {
 
   $("betOdds").value = bet?.odds ?? "";
   $("betPotential").value = bet?.potential ?? "";
-  $("betStatus").value = bet?.status || "pending";
-  $("betActual").value = bet?.actual ?? 0;
 
   $("eventPick").value = "";
   $("eventOdds").value = "";
   $("eventMarket").value = "Esito 1X2";
+
+  const calculatedOdds = calcOdds(events);
+  const savedOdds = Number(bet?.odds) || 0;
+  const savedPotential = Number(bet?.potential) || 0;
+  const calculatedPotential = calcPotential(
+    Number($("betStake").value),
+    savedOdds || calculatedOdds
+  );
+
+  // Riconosce anche le vecchie modifiche manuali.
+  editingOdds = Boolean(
+    bet && (
+      bet.manualOdds === true ||
+      (savedOdds > 0 && savedOdds !== calculatedOdds)
+    )
+  );
+
+  editingPotential = Boolean(
+    bet && (
+      bet.manualPotential === true ||
+      (savedPotential > 0 && savedPotential !== calculatedPotential)
+    )
+  );
 
   renderEventList();
   refreshPicker();
@@ -510,12 +536,9 @@ $("betForm").addEventListener("submit", event => {
   const odds = Number($("betOdds").value) || calcOdds(events);
 
   const potentialInput = $("betPotential").value;
-
   const potential = potentialInput.trim() !== ""
     ? Number(potentialInput)
     : calcPotential(stake, odds);
-
-  const actual = Number($("betActual").value) || 0;
 
   if (!Number.isFinite(stake) || stake <= 0) {
     toast("Inserisci una puntata valida");
@@ -532,10 +555,7 @@ $("betForm").addEventListener("submit", event => {
     return;
   }
 
-  if (!Number.isFinite(actual) || actual < 0) {
-    toast("Incasso effettivo non valido");
-    return;
-  }
+  const existingBet = bets.find(item => item.id === id);
 
   const bet = {
     id,
@@ -545,13 +565,20 @@ $("betForm").addEventListener("submit", event => {
     stake,
     odds,
     potential,
-    status: $("betStatus").value,
-    actual,
+    manualOdds: editingOdds,
+    manualPotential: editingPotential,
     events: events.map(item => ({
       ...item,
       result: item.result || "pending"
     }))
   };
+
+  // Stato sempre ricavato dagli eventi.
+  // Per le vecchie schedine senza eventi conserva lo stato storico.
+  bet.status = getBetStatus({
+    ...bet,
+    status: existingBet?.status || "pending"
+  });
 
   const index = bets.findIndex(item => item.id === id);
 
@@ -602,7 +629,6 @@ $("betsList").addEventListener("click", event => {
       ...original,
       id: createId(),
       status: "pending",
-      actual: 0,
       events: (original.events || []).map(item => ({
         ...item,
         result: "pending"
@@ -692,7 +718,7 @@ document.querySelectorAll("[data-tab]").forEach(button => {
 
 $("exportBtn").addEventListener("click", () => {
   const backup = {
-    version: 3,
+    version: 4,
     exportedAt: new Date().toISOString(),
     bets,
     fixtures: loadFixtures() || []
@@ -730,18 +756,21 @@ $("importFile").addEventListener("change", async event => {
       return;
     }
 
-    bets = importedBets.map(bet => ({
-      ...bet,
-      id: bet.id || createId(),
-      status: bet.status || "pending",
-      actual: Number(bet.actual) || 0,
-      events: Array.isArray(bet.events)
-        ? bet.events.map(item => ({
-            ...item,
-            result: item.result || "pending"
-          }))
-        : []
-    }));
+    bets = importedBets.map(bet => {
+      const normalized = {
+        ...bet,
+        id: bet.id || createId(),
+        events: Array.isArray(bet.events)
+          ? bet.events.map(item => ({
+              ...item,
+              result: item.result || "pending"
+            }))
+          : []
+      };
+
+      normalized.status = getBetStatus(normalized);
+      return normalized;
+    });
 
     saveAll();
     refresh();
