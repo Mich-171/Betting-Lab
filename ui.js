@@ -5,7 +5,10 @@ import {
   byType,
   outcomeStats,
   eventStats,
-  marketStats
+  marketStats,
+  getBetStatus,
+  getBetReturn,
+  betWinRate
 } from "./calculations.js";
 
 export function $(id) {
@@ -61,6 +64,22 @@ function statusOptions(current) {
   `).join("");
 }
 
+const marketOptions = [
+  "Esito 1X2",
+  "Doppia chance",
+  "Chance Mix",
+  "Goal / No Goal",
+  "Over / Under",
+  "Multigol",
+  "Cluster risultati",
+  "Risultato esatto",
+  "Corner",
+  "Cartellini",
+  "Tiri in porta",
+  "Combo",
+  "Altro"
+];
+
 export function renderDashboard(bets) {
   const result = totals(bets);
 
@@ -85,7 +104,8 @@ export function renderBets(bets) {
 
   return bets.map(bet => {
     const events = bet.events || [];
-    const status = bet.status || "pending";
+    const status = getBetStatus(bet);
+    const actual = getBetReturn(bet);
 
     return `
       <article class="bet-card">
@@ -117,13 +137,14 @@ export function renderBets(bets) {
             <strong>${money(bet.potential)}</strong>
           </div>
           <div>
-            <span>Incasso effettivo</span>
-            <strong>${money(bet.actual)}</strong>
+            <span>Incasso calcolato</span>
+            <strong>${status === "pending" ? "—" : money(actual)}</strong>
           </div>
         </div>
 
         <div class="bet-events-summary">
           <strong>${events.length} eventi</strong>
+
           ${events.map(event => `
             <div class="bet-event-line">
               <span>
@@ -161,6 +182,8 @@ export function renderStats(bets) {
   const outcomes = outcomeStats(bets);
   const events = eventStats(bets);
   const markets = marketStats(bets);
+  const winRate = betWinRate(bets);
+  const overall = totals(bets);
 
   $("typeStats").innerHTML = `
     <div class="stats-grid">
@@ -171,15 +194,27 @@ export function renderStats(bets) {
         <article class="stats-card">
           <h4>${name}</h4>
           <p>Schedine: <strong>${item.count}</strong></p>
-          <p>Puntato: <strong>${money(item.stake)}</strong></p>
+          <p>Puntato (concluse): <strong>${money(item.stake)}</strong></p>
           <p>Incassato: <strong>${money(item.returned)}</strong></p>
           <p>Profitto: <strong>${money(item.profit)}</strong></p>
           <p>ROI: <strong>${item.roi.toFixed(2)}%</strong></p>
+          <p>Win Rate: <strong>${betWinRate(bets.filter(bet => bet.type === name)).toFixed(2)}%</strong></p>
           <p>Vinte: <strong>${item.won}</strong></p>
           <p>Perse: <strong>${item.lost}</strong></p>
           <p>In attesa: <strong>${item.pending}</strong></p>
+          <p>Annullate: <strong>${item.void}</strong></p>
         </article>
       `).join("")}
+    </div>
+
+    <div class="stats-grid">
+      <article class="stats-card">
+        <h4>Rendimento complessivo</h4>
+        <p>ROI: <strong>${overall.roi.toFixed(2)}%</strong></p>
+        <p>Win Rate: <strong>${winRate.toFixed(2)}%</strong></p>
+        <p>Capitale considerato: <strong>${money(overall.stake)}</strong></p>
+        <p>Profitto: <strong>${money(overall.profit)}</strong></p>
+      </article>
     </div>
   `;
 
@@ -347,22 +382,9 @@ export function renderEvents(events) {
         <label>
           Mercato
           <select data-field="market" data-index="${index}">
-            ${[
-              "Esito 1X2",
-              "Doppia chance",
-              "Goal / No Goal",
-              "Over / Under",
-              "Multigol",
-              "Cluster risultati",
-              "Risultato esatto",
-              "Corner",
-              "Cartellini",
-              "Tiri in porta",
-              "Combo",
-              "Altro"
-            ].map(market => `
-              <option value="${market}" ${(event.market || "Altro") === market ? "selected" : ""}>
-                ${market}
+            ${marketOptions.map(market => `
+              <option value="${escapeHTML(market)}" ${(event.market || "Altro") === market ? "selected" : ""}>
+                ${escapeHTML(market)}
               </option>
             `).join("")}
           </select>
@@ -405,13 +427,15 @@ export function filterBets(bets, type, status, search) {
   const query = String(search || "").toLowerCase().trim();
 
   return bets.filter(bet => {
+    const betStatus = getBetStatus(bet);
     const matchesType = type === "all" || bet.type === type;
-    const matchesStatus = status === "all" || (bet.status || "pending") === status;
+    const matchesStatus = status === "all" || betStatus === status;
 
     const searchable = [
       bet.round,
       bet.type,
       bet.date,
+      betStatus,
       ...(bet.events || []).flatMap(event => [
         event.home,
         event.away,
