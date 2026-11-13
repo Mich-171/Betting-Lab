@@ -25,14 +25,58 @@ export function calcPotential(stake, odds) {
   return round2((Number(stake) || 0) * (Number(odds) || 0));
 }
 
+// Determina automaticamente l'esito della schedina dagli eventi.
+export function getBetStatus(bet) {
+  const events = Array.isArray(bet.events) ? bet.events : [];
+
+  // Compatibilità con eventuali vecchie schedine senza eventi.
+  if (events.length === 0) {
+    return bet.status || "pending";
+  }
+
+  const results = events.map(event => event.result || "pending");
+
+  // Basta un evento perso per perdere la schedina.
+  if (results.includes("lost")) return "lost";
+
+  // Se ci sono ancora eventi da valutare, resta in attesa.
+  if (results.includes("pending")) return "pending";
+
+  // Se sono tutti annullati, la schedina è annullata.
+  if (results.every(result => result === "void")) return "void";
+
+  // Tutti gli eventi rimanenti sono vinti o annullati.
+  return "won";
+}
+
+// Calcola l'incasso in base all'esito automatico.
+export function getBetReturn(bet) {
+  const status = getBetStatus(bet);
+
+  if (status === "won") {
+    return round2(bet.potential);
+  }
+
+  if (status === "void") {
+    return round2(bet.stake);
+  }
+
+  return 0;
+}
+
 export function totals(bets) {
-  const stake = bets.reduce(
+  const settled = bets.filter(bet => {
+    const status = getBetStatus(bet);
+    return status === "won" || status === "lost" || status === "void";
+  });
+
+  const stake = settled.reduce(
     (sum, bet) => sum + (Number(bet.stake) || 0),
     0
   );
 
-  const returned = bets.reduce(
-    (sum, bet) => sum + (Number(bet.actual) || 0),
+  const returned = settled.reduce(
+    (sum, bet) => sum + getBetReturn(bet),
     0
   );
 
@@ -42,34 +86,41 @@ export function totals(bets) {
     stake: round2(stake),
     returned: round2(returned),
     profit: round2(profit),
-    roi: stake > 0 ? round2(profit / stake * 100) : 0
+    roi: stake > 0 ? round2(profit / stake * 100) : 0,
+    settled: settled.length,
+    pending: bets.length - settled.length
   };
 }
 
 export function byType(bets, type) {
   const filtered = bets.filter(bet => bet.type === type);
+  const result = totals(filtered);
 
   return {
-    ...totals(filtered),
+    ...result,
     count: filtered.length,
-    won: filtered.filter(bet => bet.status === "won").length,
-    lost: filtered.filter(bet => bet.status === "lost").length,
-    pending: filtered.filter(
-      bet => !bet.status || bet.status === "pending"
-    ).length,
-    void: filtered.filter(bet => bet.status === "void").length
+    won: filtered.filter(bet => getBetStatus(bet) === "won").length,
+    lost: filtered.filter(bet => getBetStatus(bet) === "lost").length,
+    pending: filtered.filter(bet => getBetStatus(bet) === "pending").length,
+    void: filtered.filter(bet => getBetStatus(bet) === "void").length
   };
 }
 
 export function outcomeStats(bets) {
   return {
-    won: bets.filter(bet => bet.status === "won").length,
-    lost: bets.filter(bet => bet.status === "lost").length,
-    pending: bets.filter(
-      bet => !bet.status || bet.status === "pending"
-    ).length,
-    void: bets.filter(bet => bet.status === "void").length
+    won: bets.filter(bet => getBetStatus(bet) === "won").length,
+    lost: bets.filter(bet => getBetStatus(bet) === "lost").length,
+    pending: bets.filter(bet => getBetStatus(bet) === "pending").length,
+    void: bets.filter(bet => getBetStatus(bet) === "void").length
   };
+}
+
+export function betWinRate(bets) {
+  const won = bets.filter(bet => getBetStatus(bet) === "won").length;
+  const lost = bets.filter(bet => getBetStatus(bet) === "lost").length;
+  const settled = won + lost;
+
+  return settled > 0 ? round2(won / settled * 100) : 0;
 }
 
 export function eventStats(bets) {
